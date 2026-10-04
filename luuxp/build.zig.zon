@@ -1,0 +1,14 @@
+.{
+    .name = .luuxp,
+    .version = "0.0.0",
+    .fingerprint = 0x23d815867cd6002d,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "LICENSE",
+        "README.md",
+    },
+}
