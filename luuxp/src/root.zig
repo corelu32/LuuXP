@@ -6,3 +6,5 @@ pub const native = @cImport({
     @cInclude("physfs.h");
     @cInclude("spirv_reflect.h");
 });
+
+pub const Application = @import("Application.zig");
