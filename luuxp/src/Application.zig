@@ -25,6 +25,11 @@ pub const SubSystem = enum {
     Camera
 };
 
+pub const ApplicationError = error {
+    ResourceFailure,
+    InvalidSettings
+};
+
 allocator: std.mem.Allocator,
 io: std.Io,
 settings: AppSettings,
@@ -105,7 +110,7 @@ pub fn useSubSystems(_: *@This(), subsystems: []const SubSystem) !void {
         native.run(c.SDL_InitSubSystem(native_subsys))
         catch {
             log.err("Failed to enable {s} subsystem. SDL error: {s}", .{ @tagName(subsystem), c.SDL_GetError() });
-            return error.SubSystemFailure;
+            return ApplicationError.ResourceFailure;
         };
     }
 }
@@ -126,7 +131,7 @@ fn syncFramerate(self: *@This()) !f64 {
     if (has_target_fps) {
         if (self.settings.target_fps.? < 1.0) {
             log.err("The target FPS cannot be less than one.", .{});
-            return error.InvalidFps;
+            return ApplicationError.InvalidSettings;
         }
 
         // Get actual deltatime (nanoseconds)
