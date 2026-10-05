@@ -1,4 +1,7 @@
 const std = @import("std");
+const native = @import("native.zig");
+const c = native.c;
+
 const log = std.log.scoped(.Application);
 
 const BackendSettings = struct {
@@ -9,6 +12,17 @@ const BackendSettings = struct {
 const AppSettings = struct {
     target_fps: ?f64 = 60,
     vsync_enabled: bool = false,
+};
+
+pub const SubSystem = enum {
+    Audio,
+    Video,
+    Joystick,
+    Haptic,
+    Gamepad,
+    Events,
+    Sensor,
+    Camera
 };
 
 allocator: std.mem.Allocator,
@@ -34,7 +48,6 @@ fn init(allocator: std.mem.Allocator, io: std.Io) @This() {
     return .{
         .allocator = allocator,
         .io = io,
-
         .settings = .{},
 
         // Initialize internal state.
@@ -55,6 +68,10 @@ pub fn run(settings: BackendSettings, callbacks: anytype) !void {
     app.* = init(settings.allocator, settings.io);
     defer allocator.destroy(app);
 
+    // Initialize SDL.
+    try native.run(c.SDL_Init(0));
+
+    // Run user-defined `onInit` function.
     try callbacks.onInit(app);
 
     while (true) {
@@ -65,6 +82,32 @@ pub fn run(settings: BackendSettings, callbacks: anytype) !void {
     }
 
     try callbacks.onQuit(app);
+
+    // Wait for GPU idle, then quit SDL.
+    // (add when ready!) --- try native.run(c.SDL_WaitForGPUIdle(...));
+    try native.run(c.SDL_Quit());
+}
+
+pub fn enableSubSystems(_: *@This(), subsystems: []const SubSystem) !void {
+    for (subsystems) |subsystem| {
+
+        const native_subsys = switch (subsystem) {
+            .Audio    => c.SDL_INIT_AUDIO,
+            .Video    => c.SDL_INIT_VIDEO,
+            .Joystick => c.SDL_INIT_JOYSTICK,
+            .Haptic   => c.SDL_INIT_HAPTIC,
+            .Gamepad  => c.SDL_INIT_GAMEPAD,
+            .Events   => c.SDL_INIT_EVENTS,
+            .Sensor   => c.SDL_INIT_SENSOR,
+            .Camera   => c.SDL_INIT_CAMERA
+        };
+
+        native.run(c.SDL_InitSubSystem(native_subsys))
+        catch {
+            log.err("Failed to enable {s} subsystem. SDL error: {s}", .{ @tagName(subsystem), c.SDL_GetError() });
+            return error.SubSystemFailure;
+        };
+    }
 }
 
 /// Calculate delta-time between frames (in seconds).
