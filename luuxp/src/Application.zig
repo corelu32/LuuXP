@@ -6,13 +6,14 @@ const BackendSettings = struct {
     io: std.Io,
 };
 
-allocator: std.mem.Allocator,
-io: std.Io,
-
-settings: struct {
+const AppSettings = struct {
     target_fps: ?f64 = 60,
     vsync_enabled: bool = false,
-},
+};
+
+allocator: std.mem.Allocator,
+io: std.Io,
+settings: AppSettings,
 
 /// Holds the internal application state. Any scope outside the
 /// application should not mutate this state.
