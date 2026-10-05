@@ -1,7 +1,7 @@
 const std = @import("std");
 const log = std.log.scoped(.Application);
 
-const InitSettings = struct {
+const BackendSettings = struct {
     allocator: std.mem.Allocator,
     io: std.Io,
 };
@@ -47,7 +47,7 @@ fn init(allocator: std.mem.Allocator, io: std.Io) @This() {
 }
 
 /// Run the application along with user-defined event callbacks.
-pub fn run(settings: InitSettings, callbacks: anytype) !void {
+pub fn run(settings: BackendSettings, callbacks: anytype) !void {
     const allocator = settings.allocator;
 
     var app = try allocator.create(@This());
