@@ -88,7 +88,7 @@ pub fn run(settings: BackendSettings, callbacks: anytype) !void {
     try native.run(c.SDL_Quit());
 }
 
-pub fn enableSubSystems(_: *@This(), subsystems: []const SubSystem) !void {
+pub fn useSubSystems(_: *@This(), subsystems: []const SubSystem) !void {
     for (subsystems) |subsystem| {
 
         const native_subsys = switch (subsystem) {

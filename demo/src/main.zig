@@ -11,7 +11,7 @@ pub fn main(init: std.process.Init) !void {
         struct {
             pub fn onInit(app: *Application) !void {
 
-                try app.enableSubSystems(&.{
+                try app.useSubSystems(&.{
                     
                 });
 
