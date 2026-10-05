@@ -3,24 +3,26 @@ const luuxp = @import("luuxp");
 const Application = luuxp.Application;
 
 pub fn main(init: std.process.Init) !void {
-    const allocator = std.heap.smp_allocator;
-    var app = Application.init(allocator, init.io);
+    try Application.run(
+        .{
+            .allocator = std.heap.smp_allocator,
+            .io = init.io
+        },
+        struct {
+            pub fn onInit(app: *Application) !void {
+                app.settings.target_fps = 120.0;
+            }
 
-    try app.run(struct {
-        pub fn onInit() !void {
-            std.debug.print("Initialized application.\n", .{ });
-        }
+            pub fn onUpdate(_: *Application, dt: f64) !void {
+                std.debug.print("FPS: {}\n", .{ 1 / dt });
+            }
 
-        pub fn onUpdate(dt: f64) !void {
-            std.debug.print("FPS: {}\n", .{ 1 / dt });
-        }
+            pub fn onRender(_: *Application, _: f64) !void {
 
-        pub fn onRender(_: f64) !void {
+            }
 
-        }
+            pub fn onQuit(_: *Application) !void {
 
-        pub fn onQuit() !void {
-
-        }
-    });
+            }
+        });
 }

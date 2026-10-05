@@ -1,6 +1,11 @@
 const std = @import("std");
 const log = std.log.scoped(.Application);
 
+const InitSettings = struct {
+    allocator: std.mem.Allocator,
+    io: std.Io,
+};
+
 allocator: std.mem.Allocator,
 io: std.Io,
 
@@ -20,7 +25,7 @@ internal: struct {
 },
 
 /// Initializes an application.
-pub fn init(allocator: std.mem.Allocator, io: std.Io) @This() {
+fn init(allocator: std.mem.Allocator, io: std.Io) @This() {
 
     const clock = std.Io.Clock.awake;
     const timestamp = clock.now(io);
@@ -42,17 +47,23 @@ pub fn init(allocator: std.mem.Allocator, io: std.Io) @This() {
 }
 
 /// Run the application along with user-defined event callbacks.
-pub fn run(self: *@This(), callbacks: anytype) !void {
-    try callbacks.onInit();
+pub fn run(settings: InitSettings, callbacks: anytype) !void {
+    const allocator = settings.allocator;
+
+    var app = try allocator.create(@This());
+    app.* = init(settings.allocator, settings.io);
+    defer allocator.destroy(app);
+
+    try callbacks.onInit(app);
 
     while (true) {
-        const delta = try self.syncFramerate();
+        const delta = try app.syncFramerate();
 
-        try callbacks.onUpdate(delta);
-        try callbacks.onRender(delta);
+        try callbacks.onUpdate(app, delta);
+        try callbacks.onRender(app, delta);
     }
 
-    try callbacks.onQuit();
+    try callbacks.onQuit(app);
 }
 
 /// Calculate delta-time between frames (in seconds).
