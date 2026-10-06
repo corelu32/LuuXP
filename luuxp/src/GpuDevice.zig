@@ -5,7 +5,7 @@ const c = native.c;
 const log = std.log.scoped(.GpuDevice);
 
 pub const GpuDeviceError = error {
-    ResourceFailure
+    InitFailure
 };
 
 allocator: std.mem.Allocator,
@@ -25,7 +25,7 @@ pub fn init(allocator: std.mem.Allocator, debug_mode: bool) !@This() {
         "UNNAMED_DEVICE"))
     catch {
         log.err("Failed to create the GPU device. SDL error: {s}", .{ c.SDL_GetError() });
-        return GpuDeviceError.ResourceFailure;
+        return GpuDeviceError.InitFailure;
     };
     errdefer {
         c.SDL_DestroyGPUDevice(device.handle);
