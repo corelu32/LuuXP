@@ -19,14 +19,18 @@ pub fn init(allocator: std.mem.Allocator, debug_mode: bool) !@This() {
         .handle = undefined,
     };
 
-    device.handle = native.runWithResult(c.SDL_CreateGPUDevice(
-        c.SDL_GPU_SHADERFORMAT_SPIRV,
-        debug_mode,
-        "UNNAMED_DEVICE"))
-    catch {
-        log.err("Failed to create the GPU device. SDL error: {s}", .{ c.SDL_GetError() });
-        return GpuDeviceError.InitFailure;
-    };
+    // Create the GPU device handle.
+    {
+        const handle = c.SDL_CreateGPUDevice(
+            c.SDL_GPU_SHADERFORMAT_SPIRV,
+            debug_mode,
+            "UNNAMED_DEVICE");
+        
+        device.handle = handle orelse {
+            log.err("Failed to create the GPU device. SDL error: {s}", .{ c.SDL_GetError() });
+            return GpuDeviceError.InitFailure;
+        };
+    }
     errdefer {
         c.SDL_DestroyGPUDevice(device.handle);
     }
