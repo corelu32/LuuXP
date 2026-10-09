@@ -3,8 +3,6 @@ const luexpress = @import("luuxp");
 const GpuDevice = luexpress.GpuDevice;
 const RuntimeSettings = luexpress.RuntimeSettings;
 
-
-
 pub fn main(init: std.process.Init) !void {
 
     const State = struct {
@@ -27,7 +25,7 @@ pub fn main(init: std.process.Init) !void {
 
         }
 
-        pub fn onQuerySettings(_: *State) RuntimeSettings {
+        pub fn useSettings(_: *State) RuntimeSettings {
             return .{
                 .target_fps = 60,
                 .vsync_enabled = false
