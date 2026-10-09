@@ -38,3 +38,8 @@ pub fn init(allocator: std.mem.Allocator, title: []const u8, size: @Vector(2, u3
 
     return window;
 }
+
+pub fn deinit(self: *@This()) void {
+    log.info("Releasing window '{s}'.", .{ c.SDL_GetWindowTitle(self.handle) });
+    c.SDL_DestroyWindow(self.handle);
+}
