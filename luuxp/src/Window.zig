@@ -43,3 +43,13 @@ pub fn deinit(self: *@This()) void {
     log.info("Releasing window '{s}'.", .{ c.SDL_GetWindowTitle(self.handle) });
     c.SDL_DestroyWindow(self.handle);
 }
+
+pub fn setTitle(self: *@This(), title: []const u8) !void {
+
+    const ok = c.SDL_SetWindowTitle(self.handle, std.mem.span(title));
+
+    if (!ok) {
+        log.err("Failed to update the window's title to '{s}'.", .{ title });
+        return WindowError.ResourceUpdateFailure;
+    }
+}
