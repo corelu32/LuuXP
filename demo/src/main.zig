@@ -5,6 +5,7 @@ const RuntimeSettings = luexpress.RuntimeSettings;
 const FileRepo        = luexpress.FileRepo;
 const FileStream      = luexpress.FileStream;
 const SubSystem       = luexpress.SubSystem;
+const Keyboard        = luexpress.Keyboard;
 const Window          = luexpress.Window;
 const GpuDevice       = luexpress.GpuDevice;
 const CommandBuffer   = luexpress.CommandBuffer;
@@ -70,8 +71,10 @@ const Events = struct {
         };
     }
 
-    pub fn onKeyPress(_: *State) !void {
-
+    pub fn onKeyPress(_: *State, key: Keyboard.KeyCode) !void {
+        if (key == .Escape) {
+            std.debug.print("Escape pressed!", .{ });
+        }
     }
     
     pub fn onUpdate(state: *State, dt: f64) !void {

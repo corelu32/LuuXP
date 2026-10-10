@@ -5,11 +5,11 @@ const c   = native.c;
 pub const native        = @import("native.zig");
 pub const FileRepo      = @import("FileRepo.zig");
 pub const FileStream    = @import("FileStream.zig");
+pub const Keyboard      = @import("Keyboard.zig");
 pub const Window        = @import("Window.zig");
 pub const GpuDevice     = @import("GpuDevice.zig");
 pub const CommandBuffer = @import("CommandBuffer.zig");
 pub const Shader        = @import("Shader.zig");
-
 
 pub const SubSystem = enum {
     Audio,
@@ -68,7 +68,13 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
 
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
+
                 c.SDL_EVENT_QUIT => running = false,
+
+                c.SDL_EVENT_KEY_DOWN => {
+                    try callbacks.onKeyPress(state, Keyboard.KeyCode.fromSdl(event.key.key));
+                },
+
                 else => { }
             }
         }
