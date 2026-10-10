@@ -24,7 +24,7 @@ pub fn init(allocator: std.mem.Allocator, title: []const u8, size: @Vector(2, u3
 
     // Create the window.
     {
-        const w = c.SDL_CreateWindow(std.mem.span(title), size[0], size[1]) orelse {
+        const w = c.SDL_CreateWindow(std.mem.span(title), size[0], size[1], 0) orelse {
             log.err("Failed to create the window '{s}''.", .{ title });
             return WindowError.ResourceInitFailure;
         };
