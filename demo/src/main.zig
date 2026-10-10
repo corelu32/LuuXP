@@ -20,6 +20,7 @@ pub fn main(init: std.process.Init) !void {
         gpu_device  : GpuDevice,
         vert_shader : Shader,
         frag_shader : Shader,
+        tick        : u64 = 0,
     };
 
     const Events = struct {
@@ -28,7 +29,7 @@ pub fn main(init: std.process.Init) !void {
             try luexpress.loadSubSystems(&.{ SubSystem.Video });
 
             // Create the window and GPU device.
-            var window = try Window.init(allocator, "Main Window", .{ 800, 600 });
+            var window = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
             var gpu_device = try GpuDevice.init(allocator, false);
             try gpu_device.claimWindow(&window);
 
@@ -75,8 +76,19 @@ pub fn main(init: std.process.Init) !void {
 
         }
         
-        pub fn onUpdate(_: *State, _: f64) !void {
-            // std.debug.print("FPS: {}\n", .{ 1 / dt });
+        pub fn onUpdate(state: *State, dt: f64) !void {
+
+            // Update window title to include FPS every 60 frames.
+            {
+                if (state.tick % 60 == 0) {
+                    var buffer: [64]u8 = undefined;
+                    const title = try std.fmt.bufPrint(&buffer, "Luexpress Demo ({} FPS)", .{ @round(1 / dt) });
+                    try state.window.setTitle(title);
+                    state.tick = 1;
+                }
+
+                state.tick += 1;
+            }
         }
 
         pub fn onRender(state: *State, _: f64) !void {
