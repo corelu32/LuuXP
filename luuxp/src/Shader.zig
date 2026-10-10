@@ -36,6 +36,25 @@ pub fn init(
     return shader;
 }
 
+pub fn initFromPath(
+    allocator: std.mem.Allocator,
+    gpu_device: *GpuDevice,
+    file_repo: *FileRepo,
+    path: []const u8,
+    entry_point: []const u8,
+    stage: ShaderStage) !@This() {
+    
+    var stream = try file_repo.open(path);
+    defer stream.close() catch { };
+    
+    return try init(
+        allocator,
+        gpu_device,
+        &stream,
+        entry_point,
+        stage);
+}
+
 fn loadBytecode(allocator: std.mem.Allocator, stream: *FileStream) ![]u8 {
     const size = try stream.getSize();
     

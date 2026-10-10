@@ -1,13 +1,14 @@
 const std = @import("std");
 const native = @import("native.zig");
 const util = @import("util.zig");
+const FileStream = @import("FileStream.zig");
 
 pub const FileRepoType = enum {
     ParentDirectory,
     ZipFile,
 };
 
-pub const FileRepoError = enum {
+pub const FileRepoError = error {
     InvalidPath,
     InitFailure,
 };
@@ -25,7 +26,7 @@ absolute_path: []const u8,
 pub fn init(io: std.Io, path: []const u8, repo_type: FileRepoType) !@This() {
     switch (repo_type) {
         .ParentDirectory => {
-            const exists = try doesDirectoryExist();
+            const exists = try doesDirectoryExist(io, path);
 
             if (!exists) {
                 log.err("The parent directory at '{s}' does not exist.", .{ path } );
@@ -35,7 +36,7 @@ pub fn init(io: std.Io, path: []const u8, repo_type: FileRepoType) !@This() {
             log.info("Initialized the file repository as a physical directory '{s}'.", .{ path });
         },
         .ZipFile => {
-            if (!native.c.PHYSFS_isInit()) {
+            if (native.c.PHYSFS_isInit() == 0) {
                 const result = native.c.PHYSFS_init(null);
 
                 if (result == 0) {
@@ -67,6 +68,12 @@ pub fn init(io: std.Io, path: []const u8, repo_type: FileRepoType) !@This() {
         .repo_type = repo_type,
         .absolute_path = path,
     };
+}
+
+/// Convenient method to open a file stream directly from the repo,
+/// given the relative path.
+pub fn open(self: *@This(), relative_path: []const u8) !FileStream {
+    return FileStream.open(self, relative_path);
 }
 
 /// Check if a directory exists or not.

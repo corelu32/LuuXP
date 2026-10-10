@@ -29,7 +29,7 @@ pub fn open(file_repo: *FileRepo, relative_path: []const u8) !@This() {
                 relative_path
             });
 
-            sdl_stream = native.c.SDL_IOFromFile(path_concat.ptr);
+            sdl_stream = native.c.SDL_IOFromFile(path_concat.ptr, "rb");
         },
         .ZipFile => {
 
@@ -43,7 +43,7 @@ pub fn open(file_repo: *FileRepo, relative_path: []const u8) !@This() {
             }
 
             // Ensure the file exists within the archive.
-            if (native.c.PHYSFS_exists(c_path.value)) {
+            if (native.c.PHYSFS_exists(c_path.value) == 0) {
                 log.err("The file path '{s}' does not exist in the archive.", .{ relative_path });
                 return FileStreamError.FileNotFound;
             }
