@@ -67,9 +67,13 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
                 else => { }
             }
         }
+        
+        if (!running) { break; }
 
         try callbacks.onUpdate(state, delta);
         try callbacks.onRender(state, delta);
+
+        if (!running) { break; }
     }
 
     try callbacks.onQuit(state);
