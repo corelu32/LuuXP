@@ -24,7 +24,7 @@ pub fn init(allocator: std.mem.Allocator, debug_mode: bool) !@This() {
         const handle = c.SDL_CreateGPUDevice(
             c.SDL_GPU_SHADERFORMAT_SPIRV,
             debug_mode,
-            "UNNAMED_DEVICE");
+            null);
         
         device.handle = handle orelse {
             log.err("Failed to create the GPU device. SDL error: {s}", .{ c.SDL_GetError() });

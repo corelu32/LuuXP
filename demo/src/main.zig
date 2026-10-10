@@ -11,6 +11,7 @@ pub fn main(init: std.process.Init) !void {
         allocator: std.mem.Allocator,
         io: std.Io,
         window: Window,
+        gpu_device: GpuDevice,
     };
 
     const Events = struct {
@@ -18,11 +19,13 @@ pub fn main(init: std.process.Init) !void {
 
             try luexpress.loadSubSystems(&.{ SubSystem.Video });
             const window = try Window.init(allocator, "Main Window", .{ 800, 600 });
+            const gpu_device = try GpuDevice.init(allocator, false);
 
             return .{
                 .allocator = allocator,
                 .io = io,
                 .window = window,
+                .gpu_device = gpu_device
             };
         }
 
