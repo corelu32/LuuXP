@@ -6,6 +6,7 @@ const FileRepo = @import("FileRepo.zig");
 pub const FileStreamError = error {
     InitFailure,
     FileNotFound,
+    OperationFailed,
 };
 
 const log = std.log.scoped(.IoStream);
@@ -74,6 +75,43 @@ pub fn open(file_repo: *FileRepo, relative_path: []const u8) !@This() {
     };
 
     return .{ .handle = handle };
+}
+
+/// Close the file stream.
+pub fn close(self: *@This()) !void {
+    const ok = native.c.SDL_CloseIO(self.handle);
+
+    if (!ok) {
+        log.err("Failed to close the file stream. SDL error: {s}", .{ native.c.SDL_GetError() });
+        return FileStreamError.OperationFailed;
+    }
+}
+
+/// Get the total number of bytes in the file stream.
+pub fn getSize(self: *@This()) !u64 {
+    const result = native.c.SDL_GetIOSize(self.handle);
+
+    if (result < 0) {
+        log.err("Failed to fetch the file stream size. SDL error: {s}", .{ native.c.SDL_GetError() });
+        return FileStreamError.OperationFailed;
+    }
+
+    return @intCast(result);
+}
+
+/// Write N bytes from the file stream into the provided byte buffer.
+pub fn writeToBuffer(self: *@This(), buffer: []u8, size: u64) !void {
+    if (buffer.len > size) {
+        log.err("The provided buffer cannot fit {} bytes from the file stream.", .{ size });
+        return FileStreamError.OperationFailed;
+    }
+
+    const result = native.c.SDL_ReadIO(self.handle, buffer.ptr, size);
+
+    if (result != size) {
+        log.err("Failed to read all {} bytes from the file stream.", .{ size });
+        return FileStreamError.OperationFailed;
+    }
 }
 
 /// Interface functions allowing an SDL IO stream to operate on PhysFS files.
