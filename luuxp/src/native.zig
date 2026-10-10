@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const c = @cImport({
     @cInclude("SDL3/SDL.h");
     @cInclude("SDL3_image/SDL_image.h");
@@ -53,3 +55,19 @@ pub fn run(value: anytype) NativeError!void {
         else => @compileError("tryrun: unsupported type " ++ @typeName(T)),
     }
 }
+
+pub const CString = struct {
+    z_string: [*c]const u8,
+
+    pub fn init(value: []const u8) !@This() {
+        const span = try std.heap.c_allocator.dupeZ(u8, value);
+
+        return .{
+            .z_string = span.ptr,
+        };
+    }
+
+    pub fn deinit(self: *@This()) void {
+        std.heap.c_allocator.free(std.mem.span(self.z_string));
+    }
+};
