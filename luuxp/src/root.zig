@@ -67,7 +67,7 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
                 else => { }
             }
         }
-        
+
         if (!running) { break; }
 
         try callbacks.onUpdate(state, delta);
@@ -79,7 +79,7 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
     try callbacks.onQuit(state);
 }
 
-pub fn useSubSystems(subsystems: []const SubSystem) !void {
+pub fn loadSubSystems(subsystems: []const SubSystem) !void {
     for (subsystems) |subsystem| {
 
         const native_subsys = switch (subsystem) {

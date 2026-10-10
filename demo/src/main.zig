@@ -1,5 +1,6 @@
 const std = @import("std");
 const luexpress = @import("luuxp");
+const SubSystem = luexpress.SubSystem;
 const Window = luexpress.Window;
 const GpuDevice = luexpress.GpuDevice;
 const RuntimeSettings = luexpress.RuntimeSettings;
@@ -15,7 +16,7 @@ pub fn main(init: std.process.Init) !void {
     const Events = struct {
         pub fn onInit(allocator: std.mem.Allocator, io: std.Io) !State {
 
-            try luexpress.useSubSystems(&.{ });
+            try luexpress.loadSubSystems(&.{ SubSystem.Video });
             const window = try Window.init(allocator, "Main Window", .{ 800, 600 });
 
             return .{
