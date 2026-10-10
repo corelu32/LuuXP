@@ -3,6 +3,7 @@ const log = std.log.scoped(.root);
 const c   = native.c;
 
 pub const native    = @import("native.zig");
+pub const Window    = @import("Window.zig");
 pub const GpuDevice = @import("GpuDevice.zig");
 
 pub const SubSystem = enum {
@@ -33,6 +34,8 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
 
     var clock = std.Io.Clock.awake;
     var timestamp = clock.now(io);
+    var event: c.SDL_Event = undefined;
+    var running = true;
 
     const state = try allocator.create(TState);
     defer allocator.destroy(state);
@@ -57,6 +60,13 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
             &timestamp,
             settings.target_fps,
             settings.vsync_enabled);
+
+        while (c.SDL_PollEvent(&event)) {
+            switch (event.type) {
+                c.SDL_EVENT_QUIT => running = false,
+                else => { }
+            }
+        }
 
         try callbacks.onUpdate(state, delta);
         try callbacks.onRender(state, delta);
