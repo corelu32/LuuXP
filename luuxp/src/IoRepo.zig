@@ -3,7 +3,7 @@ const native = @import("native.zig");
 const util = @import("util.zig");
 
 pub const IoRepoType = enum {
-    Directory,
+    ParentDirectory,
     ZipFile,
 };
 
@@ -24,7 +24,7 @@ absolute_path: []const u8,
 /// Automatically initializes PhysFS if it hadn't been already.
 pub fn init(io: std.Io, path: []const u8, repo_type: IoRepoType) !@This() {
     switch (repo_type) {
-        .Directory => {
+        .ParentDirectory => {
             const exists = try doesDirectoryExist();
 
             if (!exists) {
