@@ -105,23 +105,23 @@ pub const ResourceInfo = struct {
 
 allocator: std.mem.Allocator,
 info: ResourceInfo,
-members: std.StringHashMap(ResourceMemberInfo),
+member_map: std.StringHashMap(ResourceMemberInfo),
 
 /// Initialize a resource layout.
 pub fn init(allocator: std.mem.Allocator, info: ResourceInfo) @This() {
     return .{
         .info = info,
         .allocator = allocator,
-        .members = std.StringHashMap(ResourceMemberInfo).init(allocator),
+        .member_map = std.StringHashMap(ResourceMemberInfo).init(allocator),
     };
 }
 
 /// Destroy the resource layout object.
 pub fn deinit(self: *@This()) void {
-    self.members.deinit();
+    self.member_map.deinit();
 }
 
 /// Add information about one member.
 pub fn addMemberInfo(self: *@This(), info: ResourceMemberInfo) !void {
-    try self.members.put(info.scope, info);
+    try self.member_map.put(info.scope, info);
 }
