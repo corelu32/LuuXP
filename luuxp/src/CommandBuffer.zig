@@ -35,7 +35,7 @@ pub fn submit(self: *@This()) !void {
         self.active_handle = null;
     }
     else {
-        log.err("There is no command buffer to submit. Was it already submitted?");
+        log.err("There is no command buffer to submit. Was it already submitted?", .{ });
         return CommandBufferError.SubmitFailure;
     }
 }

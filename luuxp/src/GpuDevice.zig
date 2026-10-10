@@ -1,6 +1,7 @@
 const std = @import("std");
 const native = @import("native.zig");
 const Window = @import("Window.zig");
+const CommandBuffer = @import("CommandBuffer.zig");
 const c = native.c;
 
 const log = std.log.scoped(.GpuDevice);
@@ -80,6 +81,11 @@ pub fn deinit(self: *@This()) void {
 /// Pause the main thread until the GPU is idle.
 pub fn waitForIdle(self: *@This()) !void {
     try native.run(c.SDL_WaitForGPUIdle(self.handle));
+}
+
+/// Convenient function for acquiring a command buffer.
+pub fn acquireCommandBuffer(self: *@This()) !CommandBuffer {
+    return CommandBuffer.acquire(self);
 }
 
 /// Allows the GPU device to claim an existing window.

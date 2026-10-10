@@ -3,6 +3,7 @@ const luexpress = @import("luuxp");
 const SubSystem = luexpress.SubSystem;
 const Window = luexpress.Window;
 const GpuDevice = luexpress.GpuDevice;
+const CommandBuffer = luexpress.CommandBuffer;
 const RuntimeSettings = luexpress.RuntimeSettings;
 
 pub fn main(init: std.process.Init) !void {
@@ -45,8 +46,12 @@ pub fn main(init: std.process.Init) !void {
             // std.debug.print("FPS: {}\n", .{ 1 / dt });
         }
 
-        pub fn onRender(_: *State, _: f64) !void {
+        pub fn onRender(state: *State, _: f64) !void {
+            var commands = try state.gpu_device.acquireCommandBuffer();
 
+
+
+            try commands.submit();
         }
 
         pub fn onQuit(state: *State) !void {
