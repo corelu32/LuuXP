@@ -2,37 +2,37 @@ const std = @import("std");
 const native = @import("native.zig");
 const util = @import("util.zig");
 
-pub const IoRepoType = enum {
+pub const FileRepoType = enum {
     ParentDirectory,
     ZipFile,
 };
 
-pub const IoRepoError = enum {
+pub const FileRepoError = enum {
     InvalidPath,
     InitFailure,
 };
 
-const log = std.log.scoped(.IoRepo);
+const log = std.log.scoped(.FileRepo);
 
 io: std.Io,
-repo_type: IoRepoType,
+repo_type: FileRepoType,
 
 /// Absolute path to the physical directory or ZIP file.
 absolute_path: []const u8,
 
-/// Initialize the IO repository as a physical parent directory or ZIP archive file.
+/// Initialize the file repository as a physical parent directory or ZIP archive file.
 /// Automatically initializes PhysFS if it hadn't been already.
-pub fn init(io: std.Io, path: []const u8, repo_type: IoRepoType) !@This() {
+pub fn init(io: std.Io, path: []const u8, repo_type: FileRepoType) !@This() {
     switch (repo_type) {
         .ParentDirectory => {
             const exists = try doesDirectoryExist();
 
             if (!exists) {
                 log.err("The parent directory at '{s}' does not exist.", .{ path } );
-                return IoRepoError.InvalidPath;
+                return FileRepoError.InvalidPath;
             }
 
-            log.info("Initialized IO repository as physical directory '{s}'.", .{ path });
+            log.info("Initialized the file repository as a physical directory '{s}'.", .{ path });
         },
         .ZipFile => {
             if (!native.c.PHYSFS_isInit()) {
@@ -40,7 +40,7 @@ pub fn init(io: std.Io, path: []const u8, repo_type: IoRepoType) !@This() {
 
                 if (result == 0) {
                     log.err("Failed to initialize PhysFS.", .{ });
-                    return IoRepoError.InitFailure;
+                    return FileRepoError.InitFailure;
                 }
             }
 
@@ -57,7 +57,7 @@ pub fn init(io: std.Io, path: []const u8, repo_type: IoRepoType) !@This() {
 
             if (result == 0) {
                 log.err("Failed to mount the archive. PHYSFS error: {s}", .{ util.getPhysFSErrorMessage() });
-                return IoRepoError.InitFailure;
+                return FileRepoError.InitFailure;
             }
         }
     }

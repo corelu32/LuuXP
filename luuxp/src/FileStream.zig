@@ -1,9 +1,9 @@
 const std = @import("std");
 const util = @import("util.zig");
 const native = @import("native.zig");
-const IoRepo = @import("IoRepo.zig");
+const FileRepo = @import("FileRepo.zig");
 
-pub const IoStreamError = error {
+pub const FileStreamError = error {
     InitFailure,
     FileNotFound,
 };
@@ -13,18 +13,18 @@ const log = std.log.scoped(.IoStream);
 handle: *native.c.SDL_IOStream,
 
 /// Open a file stream from a file repository.
-pub fn open(io_repo: *IoRepo, relative_path: []const u8) !@This() {
+pub fn open(file_repo: *FileRepo, relative_path: []const u8) !@This() {
     var sdl_stream: ?*native.c.SDL_IOStream = null;
 
-    switch (io_repo.repo_type) {
+    switch (file_repo.repo_type) {
         
         .ParentDirectory => {
-            // Concatenate the relative path with the IO repository's parent directory
+            // Concatenate the relative path with the file repository's parent directory
             // using a stack-allocated buffer.
             var path_buffer: [4096]u8 = undefined;
 
             const path_concat: [:0]u8 = try std.fmt.bufPrintZ(&path_buffer, "{s}/{s}", .{
-                io_repo.absolute_path,
+                file_repo.absolute_path,
                 relative_path
             });
 
@@ -38,19 +38,19 @@ pub fn open(io_repo: *IoRepo, relative_path: []const u8) !@This() {
             // Ensure PhysFS was initialized.
             if (native.c.PHYSFS_isInit() == 0) {
                 log.err("Failed to open archive because PhysFS was not initialized.", .{ });
-                return IoStreamError.InitFailure;
+                return FileStreamError.InitFailure;
             }
 
             // Ensure the file exists within the archive.
             if (native.c.PHYSFS_exists(c_path.value)) {
                 log.err("The file path '{s}' does not exist in the archive.", .{ relative_path });
-                return IoStreamError.FileNotFound;
+                return FileStreamError.FileNotFound;
             }
 
             // Open the file using PhysFS.
             const file = native.c.PHYSFS_openRead(c_path.value) orelse {
                 log.err("PhysFS could not open the file '{s}'. PHYSFS error: {s}", .{ relative_path, util.getPhysFSErrorMessage() });
-                return IoStreamError.FileNotFound;
+                return FileStreamError.FileNotFound;
             };
 
             // Open the stream using SDL's IO callback interface.
@@ -70,7 +70,7 @@ pub fn open(io_repo: *IoRepo, relative_path: []const u8) !@This() {
 
     const handle = sdl_stream orelse {
         log.err("Failed to load the file from relative path '{s}'.", .{ relative_path });
-        return IoStreamError.FileNotFound;
+        return FileStreamError.FileNotFound;
     };
 
     return .{ .handle = handle };
