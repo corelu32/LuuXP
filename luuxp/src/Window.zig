@@ -24,7 +24,10 @@ pub fn init(allocator: std.mem.Allocator, title: []const u8, size: @Vector(2, u3
 
     // Create the window.
     {
-        const w = c.SDL_CreateWindow(std.mem.span(title), size[0], size[1], 0) orelse {
+        var c_string = try native.AllocedCString.init(title);
+        defer c_string.deinit();
+
+        const w = c.SDL_CreateWindow(c_string.value, @intCast(size[0]), @intCast(size[1]), 0) orelse {
             log.err("Failed to create the window '{s}''.", .{ title });
             return WindowError.ResourceInitFailure;
         };
@@ -45,7 +48,10 @@ pub fn deinit(self: *@This()) void {
 }
 
 pub fn setTitle(self: *@This(), title: []const u8) !void {
-    const ok = c.SDL_SetWindowTitle(self.handle, std.mem.span(title));
+
+    var c_string = try native.AllocedCString.init(title);
+    defer c_string.deinit();
+    const ok = c.SDL_SetWindowTitle(self.handle, c_string.value);
 
     if (!ok) {
         log.err("Failed to update the window's title to '{s}'.", .{ title });

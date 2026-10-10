@@ -56,18 +56,15 @@ pub fn run(value: anytype) NativeError!void {
     }
 }
 
-pub const CString = struct {
-    z_string: [*c]const u8,
+pub const AllocedCString = struct {
+    value: [*c]u8,
 
     pub fn init(value: []const u8) !@This() {
         const span = try std.heap.c_allocator.dupeZ(u8, value);
-
-        return .{
-            .z_string = span.ptr,
-        };
+        return .{ .value = span.ptr };
     }
 
     pub fn deinit(self: *@This()) void {
-        std.heap.c_allocator.free(std.mem.span(self.z_string));
+        std.heap.c_allocator.free(std.mem.span(self.value));
     }
 };
