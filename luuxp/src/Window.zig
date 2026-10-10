@@ -45,11 +45,23 @@ pub fn deinit(self: *@This()) void {
 }
 
 pub fn setTitle(self: *@This(), title: []const u8) !void {
-
     const ok = c.SDL_SetWindowTitle(self.handle, std.mem.span(title));
 
     if (!ok) {
         log.err("Failed to update the window's title to '{s}'.", .{ title });
         return WindowError.ResourceUpdateFailure;
     }
+
+    log.info("Updated window title to '{s}'.", .{ title });
+}
+
+pub fn setSize(self: *@This(), size: @Vector(2, u32)) !void {
+    const ok = c.SDL_SetWindowSize(self.handle, size[0], size[1]);
+
+    if (!ok) {
+        log.err("Failed to update the window's size to {}x{}.", .{ size[0], size[1] });
+        return WindowError.ResourceUpdateFailure;
+    }
+
+    log.info("Updated window size to {}x{}.", .{ size[0], size[1] });
 }
