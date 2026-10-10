@@ -53,7 +53,7 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
     state.* = try callbacks.onInit(allocator, io);
 
     while (true) {
-        const settings: RuntimeSettings = callbacks.onQuerySettings(state);
+        const settings: RuntimeSettings = callbacks.useSettings(state);
 
         const delta = try syncFramerate(
             io,
