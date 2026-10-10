@@ -5,7 +5,8 @@ const c = native.c;
 
 const WindowError = error {
     ResourceInitFailure,
-    ResourceUpdateFailure
+    ResourceUpdateFailure,
+    ResourceFetchFailure,
 };
 
 const log = std.log.scoped(.Window);
@@ -45,6 +46,15 @@ pub fn init(allocator: std.mem.Allocator, title: []const u8, size: @Vector(2, u3
 pub fn deinit(self: *@This()) void {
     log.info("Releasing window '{s}'.", .{ c.SDL_GetWindowTitle(self.handle) });
     c.SDL_DestroyWindow(self.handle);
+}
+
+pub fn getTitle(self: *@This()) ![]const u8 {
+    const result = c.SDL_GetWindowTitle(self.handle) orelse {
+        log.err("Failed to fetch the window title. SDL error: {s}", .{ c.SDL_GetError() });
+        return WindowError.ResourceFetchFailure;
+    };
+
+    return std.mem.span(result);
 }
 
 pub fn setTitle(self: *@This(), title: []const u8) !void {

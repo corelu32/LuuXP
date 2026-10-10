@@ -18,8 +18,9 @@ pub fn main(init: std.process.Init) !void {
         pub fn onInit(allocator: std.mem.Allocator, io: std.Io) !State {
 
             try luexpress.loadSubSystems(&.{ SubSystem.Video });
-            const window = try Window.init(allocator, "Main Window", .{ 800, 600 });
-            const gpu_device = try GpuDevice.init(allocator, false);
+            var window = try Window.init(allocator, "Main Window", .{ 800, 600 });
+            var gpu_device = try GpuDevice.init(allocator, false);
+            try gpu_device.claimWindow(&window);
 
             return .{
                 .allocator = allocator,
@@ -40,16 +41,18 @@ pub fn main(init: std.process.Init) !void {
 
         }
         
-        pub fn onUpdate(_: *State, dt: f64) !void {
-            std.debug.print("FPS: {}\n", .{ 1 / dt });
+        pub fn onUpdate(_: *State, _: f64) !void {
+            // std.debug.print("FPS: {}\n", .{ 1 / dt });
         }
 
         pub fn onRender(_: *State, _: f64) !void {
 
         }
 
-        pub fn onQuit(_: *State) !void {
-
+        pub fn onQuit(state: *State) !void {
+            try state.gpu_device.waitForIdle();
+            state.gpu_device.deinit();
+            state.window.deinit();
         }
     };
 
