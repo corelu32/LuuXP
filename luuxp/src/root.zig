@@ -27,6 +27,13 @@ pub const RuntimeSettings = struct {
     vsync_enabled: bool = false,
 };
 
+pub fn RuntimeContext(TState: type) type {
+    return struct {
+        state: TState,
+        settings: RuntimeSettings = .{ },
+    };
+}
+
 pub const ApplicationError = error {
     ResourceFailure,
     InvalidSettings
@@ -42,8 +49,8 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
     var event: c.SDL_Event = undefined;
     var running = true;
 
-    const state = try allocator.create(TState);
-    defer allocator.destroy(state);
+    const context = try allocator.create(RuntimeContext(TState));
+    defer allocator.destroy(context);
     
     // Initialize SDL.
     native.run(c.SDL_Init(0))
@@ -54,17 +61,15 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
     defer c.SDL_Quit();
 
     // Initialize the application state.
-    state.* = try callbacks.onInit(allocator, io);
+    context.state = try callbacks.onInit(allocator, io, &context.settings);
 
     while (true) {
-        const settings: RuntimeSettings = callbacks.useSettings(state);
-
         const delta = try syncFramerate(
             io,
             clock,
             &timestamp,
-            settings.target_fps,
-            settings.vsync_enabled);
+            context.settings.target_fps,
+            context.settings.vsync_enabled);
 
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -72,7 +77,7 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
                 c.SDL_EVENT_QUIT => running = false,
 
                 c.SDL_EVENT_KEY_DOWN => {
-                    try callbacks.onKeyPress(state, Keyboard.KeyCode.fromSdl(event.key.key));
+                    try callbacks.onKeyPress(context, Keyboard.KeyCode.fromSdl(event.key.key));
                 },
 
                 else => { }
@@ -81,13 +86,13 @@ pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
 
         if (!running) { break; }
 
-        try callbacks.onUpdate(state, delta);
-        try callbacks.onRender(state, delta);
+        try callbacks.onUpdate(context, delta);
+        try callbacks.onRender(context, delta);
 
         if (!running) { break; }
     }
 
-    try callbacks.onQuit(state);
+    try callbacks.onQuit(context);
 }
 
 pub fn loadSubSystems(subsystems: []const SubSystem) !void {

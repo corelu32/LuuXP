@@ -2,6 +2,7 @@ const std = @import("std");
 const luexpress = @import("luuxp");
 
 const RuntimeSettings = luexpress.RuntimeSettings;
+const RuntimeContext  = luexpress.RuntimeContext;
 const FileRepo        = luexpress.FileRepo;
 const FileStream      = luexpress.FileStream;
 const SubSystem       = luexpress.SubSystem;
@@ -23,7 +24,10 @@ const State = struct {
 };
 
 const Events = struct {
-    pub fn onInit(allocator: std.mem.Allocator, io: std.Io) !State {
+    pub fn onInit(allocator: std.mem.Allocator, io: std.Io, settings: *RuntimeSettings) !State {
+        
+        settings.target_fps = 60;
+        settings.vsync_enabled = false;
 
         try luexpress.loadSubSystems(&.{ SubSystem.Video });
 
@@ -64,46 +68,39 @@ const Events = struct {
         };
     }
 
-    pub fn useSettings(_: *State) RuntimeSettings {
-        return .{
-            .target_fps = 60,
-            .vsync_enabled = false
-        };
-    }
-
-    pub fn onKeyPress(_: *State, key: Keyboard.KeyCode) !void {
+    pub fn onKeyPress(_: *RuntimeContext(State), key: Keyboard.KeyCode) !void {
         if (key == .Escape) {
             std.debug.print("Escape pressed!", .{ });
         }
     }
     
-    pub fn onUpdate(state: *State, dt: f64) !void {
+    pub fn onUpdate(ctx: *RuntimeContext(State), dt: f64) !void {
 
         // Update window title to include FPS every 60 frames.
         {
-            if (state.tick % 60 == 0) {
+            if (ctx.state.tick % 60 == 0) {
                 var buffer: [64]u8 = undefined;
                 const title = try std.fmt.bufPrint(&buffer, "Luexpress Demo ({} FPS)", .{ @round(1 / dt) });
-                try state.window.setTitle(title);
-                state.tick = 1;
+                try ctx.state.window.setTitle(title);
+                ctx.state.tick = 1;
             }
 
-            state.tick += 1;
+            ctx.state.tick += 1;
         }
     }
 
-    pub fn onRender(state: *State, _: f64) !void {
-        var commands = try state.gpu_device.acquireCommandBuffer();
+    pub fn onRender(ctx: *RuntimeContext(State), _: f64) !void {
+        var commands = try ctx.state.gpu_device.acquireCommandBuffer();
 
 
 
         try commands.submit();
     }
 
-    pub fn onQuit(state: *State) !void {
-        try state.gpu_device.waitForIdle();
-        state.gpu_device.deinit();
-        state.window.deinit();
+    pub fn onQuit(ctx: *RuntimeContext(State)) !void {
+        try ctx.state.gpu_device.waitForIdle();
+        ctx.state.gpu_device.deinit();
+        ctx.state.window.deinit();
     }
 };
 
