@@ -3,6 +3,7 @@ const luexpress = @import("luuxp");
 
 const RuntimeSettings = luexpress.RuntimeSettings;
 const RuntimeContext  = luexpress.RuntimeContext;
+const loadSubSystems  = luexpress.loadSubSystems;
 const FileRepo        = luexpress.FileRepo;
 const FileStream      = luexpress.FileStream;
 const SubSystem       = luexpress.SubSystem;
@@ -29,17 +30,16 @@ const Events = struct {
         settings.target_fps = 60;
         settings.vsync_enabled = false;
 
-        try luexpress.loadSubSystems(&.{ SubSystem.Video });
+        try loadSubSystems(&.{ SubSystem.Video });
 
-        // Create the window and GPU device.
         var window = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
+
         var gpu_device = try GpuDevice.init(allocator, false);
+
         try gpu_device.claimWindow(&window);
 
-        // Initialize the file repo to a local dev directory.
         var file_repo = try FileRepo.init(io, "./demo/.assets", .ParentDirectory);
 
-        // Create the vertex shader.
         const vert_shader = try Shader.initFromPath(
             allocator,
             &gpu_device,
@@ -48,7 +48,6 @@ const Events = struct {
             "VertexMain",
             .Vertex);
         
-        // Create the fragment shader.
         const frag_shader = try Shader.initFromPath(
             allocator,
             &gpu_device,
@@ -75,7 +74,6 @@ const Events = struct {
     }
     
     pub fn onUpdate(ctx: *RuntimeContext(State), dt: f64) !void {
-
         // Update window title to include FPS every 60 frames.
         {
             if (ctx.state.tick % 60 == 0) {
@@ -91,8 +89,6 @@ const Events = struct {
 
     pub fn onRender(ctx: *RuntimeContext(State), _: f64) !void {
         var commands = try ctx.state.gpu_device.acquireCommandBuffer();
-
-
 
         try commands.submit();
     }
