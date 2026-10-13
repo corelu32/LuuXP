@@ -101,5 +101,5 @@ const Events = struct {
 };
 
 pub fn main(init: std.process.Init) !void {
-    try luexpress.run(State, Events, .{ std.heap.smp_allocator, init.io });
+    try luexpress.run(State, Events, std.heap.smp_allocator, init.io);
 }

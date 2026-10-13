@@ -39,11 +39,8 @@ pub const ApplicationError = error {
     InvalidSettings
 };
 
-pub fn run(TState: type, callbacks: anytype, init_params: anytype) !void {
-
-    const allocator: std.mem.Allocator = init_params.@"0";
-    const io: std.Io = init_params.@"1";
-
+pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: std.Io) !void {
+    
     var clock = std.Io.Clock.awake;
     var timestamp = clock.now(io);
     var event: c.SDL_Event = undefined;
