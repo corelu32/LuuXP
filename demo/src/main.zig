@@ -1,17 +1,17 @@
 const std = @import("std");
 const luexpress = @import("luuxp");
 
-const RuntimeSettings = luexpress.RuntimeSettings;
-const RuntimeContext  = luexpress.RuntimeContext;
-const loadSubSystems  = luexpress.loadSubSystems;
 const FileRepo        = luexpress.FileRepo;
 const FileStream      = luexpress.FileStream;
-const SubSystem       = luexpress.SubSystem;
 const Keyboard        = luexpress.Keyboard;
 const Window          = luexpress.Window;
 const GpuDevice       = luexpress.GpuDevice;
 const CommandBuffer   = luexpress.CommandBuffer;
 const Shader          = luexpress.Shader;
+const SubSystem       = application.SubSystem;
+const application     = luexpress.application;
+const RuntimeSettings = application.RuntimeSettings;
+const RuntimeContext  = application.RuntimeContext;
 
 const State = struct {
     allocator   : std.mem.Allocator,
@@ -30,7 +30,7 @@ const Events = struct {
         settings.target_fps = 60;
         settings.vsync_enabled = false;
 
-        try loadSubSystems(&.{ SubSystem.Video });
+        try application.loadSubSystems(&.{ SubSystem.Video });
 
         var window = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
 
@@ -101,5 +101,5 @@ const Events = struct {
 };
 
 pub fn main(init: std.process.Init) !void {
-    try luexpress.run(State, Events, std.heap.smp_allocator, init.io);
+    try application.run(State, Events, std.heap.smp_allocator, init.io);
 }
