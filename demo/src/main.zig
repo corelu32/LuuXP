@@ -51,24 +51,24 @@ const Events = struct {
         // Create the vertex shader.
         const vert_shader = try allocator.create(Shader);
         errdefer allocator.destroy(vert_shader);
-        vert_shader.* = try Shader.initFromPath(
-            allocator,
-            gpu_device,
-            file_repo,
-            "Demo.vert.spv",
-            "VertexMain",
-            .Vertex);
+        vert_shader.* = try Shader.initFromPath(allocator, gpu_device,
+        .{
+            .repo = file_repo,
+            .path = "Demo.vert.spv",
+            .stage = .Vertex,
+            .entry = "VertexMain"
+        });
         
         // Create the fragment shader.
         const frag_shader = try allocator.create(Shader);
         errdefer allocator.destroy(frag_shader);
-        frag_shader.* = try Shader.initFromPath(
-            allocator,
-            gpu_device,
-            file_repo,
-            "Demo.frag.spv",
-            "FragmentMain",
-            .Fragment);
+        frag_shader.* = try Shader.initFromPath(allocator, gpu_device,
+        .{
+            .repo = file_repo,
+            .path = "Demo.frag.spv",
+            .stage = .Fragment,
+            .entry = "FragmentMain"
+        });
 
         return .{
             .allocator   = allocator,

@@ -4,57 +4,63 @@ const FileRepo = @import("FileRepo.zig");
 const FileStream = @import("FileStream.zig");
 const GpuDevice = @import("GpuDevice.zig");
 
+const log = std.log.scoped(.Shader);
+
 pub const ShaderStage = enum {
     Vertex,
     Fragment,
     Compute,
 };
 
-const log = std.log.scoped(.Shader);
+pub const InitInfo = struct {
+    stream: *FileStream,
+    stage: ShaderStage,
+    entry: []const u8,
+};
+
+pub const InitFromPathInfo = struct {
+    repo: *FileRepo,
+    path: []const u8,
+    stage: ShaderStage,
+    entry: []const u8,
+};
 
 allocator: std.mem.Allocator,
 gpu_device: *GpuDevice,
 file_stream: *FileStream,
 stage: ShaderStage,
 
-pub fn init(
-    allocator: std.mem.Allocator,
-    gpu_device: *GpuDevice,
-    file_stream: *FileStream,
-    entry_point: []const u8,
-    stage: ShaderStage) !@This() {
+pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo) !@This() {
     
     const shader: @This() = .{
         .allocator = allocator,
         .gpu_device = gpu_device,
-        .file_stream = file_stream,
-        .stage = stage,
+        .file_stream = info.stream,
+        .stage = info.stage,
     };
 
-    const bytecode = try loadBytecode(allocator, file_stream);
+    const bytecode = try loadBytecode(allocator, info.stream);
     defer allocator.free(bytecode);
 
-    _ = entry_point;
+    // TODO: Implement entry point!
+    _ = info.entry;
+
     return shader;
 }
 
-pub fn initFromPath(
-    allocator: std.mem.Allocator,
-    gpu_device: *GpuDevice,
-    file_repo: *FileRepo,
-    path: []const u8,
-    entry_point: []const u8,
-    stage: ShaderStage) !@This() {
+pub fn initFromPath(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitFromPathInfo) !@This() {
     
-    var stream = try file_repo.open(path);
+    var stream = try info.repo.open(info.path);
     defer stream.close() catch { };
     
     return try init(
         allocator,
         gpu_device,
-        &stream,
-        entry_point,
-        stage);
+        .{
+            .stream = &stream,
+            .stage = info.stage,
+            .entry = info.entry
+        });
 }
 
 fn loadBytecode(allocator: std.mem.Allocator, stream: *FileStream) ![]u8 {
