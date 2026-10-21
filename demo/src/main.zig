@@ -67,9 +67,9 @@ const Events = struct {
         };
     }
 
-    pub fn onKeyPress(_: *RuntimeContext(State), key: input.Keycode) !void {
+    pub fn onKeyPress(ctx: *RuntimeContext(State), key: input.Keycode) !void {
         if (key == .Escape) {
-            std.debug.print("Escape pressed!", .{ });
+            ctx.quit();
         }
     }
     

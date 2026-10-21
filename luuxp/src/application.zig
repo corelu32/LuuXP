@@ -5,8 +5,6 @@ const c = native.c;
 
 const log = std.log.scoped(.application);
 
-
-
 pub const SubSystem = enum {
     Audio,
     Video,
@@ -27,6 +25,14 @@ pub fn RuntimeContext(TState: type) type {
     return struct {
         state: TState,
         settings: RuntimeSettings = .{ },
+
+        internal: struct {
+            is_running: bool = true,
+        },
+
+        pub fn quit(self: *@This()) void {
+            self.internal.is_running = false;
+        }
     };
 }
 
@@ -40,7 +46,6 @@ pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: s
     var clock = std.Io.Clock.awake;
     var timestamp = clock.now(io);
     var event: c.SDL_Event = undefined;
-    var running = true;
 
     const context = try allocator.create(RuntimeContext(TState));
     defer allocator.destroy(context);
@@ -55,8 +60,9 @@ pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: s
 
     // Initialize the application state.
     context.state = try callbacks.onInit(allocator, io, &context.settings);
+    context.internal.is_running = true;
 
-    while (true) {
+    while (context.internal.is_running) {
         const delta = try syncFramerate(
             io,
             clock,
@@ -67,7 +73,7 @@ pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: s
         while (c.SDL_PollEvent(&event)) {
             switch (event.type) {
 
-                c.SDL_EVENT_QUIT => running = false,
+                c.SDL_EVENT_QUIT => context.quit(),
 
                 c.SDL_EVENT_KEY_DOWN => {
                     try callbacks.onKeyPress(context, input.Keycode.fromSdl(event.key.key));
@@ -77,12 +83,10 @@ pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: s
             }
         }
 
-        if (!running) { break; }
+        if (!context.internal.is_running) { break; }
 
         try callbacks.onUpdate(context, delta);
         try callbacks.onRender(context, delta);
-
-        if (!running) { break; }
     }
 
     try callbacks.onQuit(context);
