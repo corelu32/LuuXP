@@ -3,8 +3,11 @@ const native = @import("native.zig");
 const FileRepo = @import("FileRepo.zig");
 const FileStream = @import("FileStream.zig");
 const GpuDevice = @import("GpuDevice.zig");
+const UniformBuffer = @import("UniformBuffer.zig");
 
 const log = std.log.scoped(.Shader);
+
+pub const ResourceLayout = @import("ShaderResourceLayout.zig");
 
 pub const ShaderStage = enum {
     Vertex,
@@ -61,6 +64,12 @@ pub fn initFromPath(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: 
             .stage = info.stage,
             .entry = info.entry
         });
+}
+
+pub fn getUniformBuffer(self: *@This(), name: []const u8) !UniformBuffer {
+    _ = self;
+    _ = name;
+    return .{};
 }
 
 fn loadBytecode(allocator: std.mem.Allocator, stream: *FileStream) ![]u8 {

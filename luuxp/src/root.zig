@@ -1,6 +1,6 @@
 const std = @import("std");
 const log = std.log.scoped(.root);
-const c = native.c;
+const c   = native.c;
 
 pub const native        = @import("native.zig");
 pub const application   = @import("application.zig");
@@ -11,3 +11,4 @@ pub const Window        = @import("Window.zig");
 pub const GpuDevice     = @import("GpuDevice.zig");
 pub const CommandBuffer = @import("CommandBuffer.zig");
 pub const Shader        = @import("Shader.zig");
+pub const UniformBuffer = @import("UniformBuffer.zig");

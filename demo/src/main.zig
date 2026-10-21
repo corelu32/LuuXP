@@ -7,6 +7,7 @@ const Window          = luexpress.Window;
 const GpuDevice       = luexpress.GpuDevice;
 const CommandBuffer   = luexpress.CommandBuffer;
 const Shader          = luexpress.Shader;
+const UniformBuffer   = luexpress.UniformBuffer;
 const SubSystem       = application.SubSystem;
 const input           = luexpress.input;
 const application     = luexpress.application;
@@ -21,6 +22,7 @@ const State = struct {
     gpu_device  : *GpuDevice,
     vert_shader : *Shader,
     frag_shader : *Shader,
+    uniforms    : *UniformBuffer,
     tick        : u64 = 0,
 };
 
@@ -70,6 +72,10 @@ const Events = struct {
             .entry = "FragmentMain"
         });
 
+        const uniforms = try allocator.create(UniformBuffer);
+        errdefer allocator.destroy(uniforms);
+        uniforms.* = try vert_shader.getUniformBuffer("Uniforms");
+
         return .{
             .allocator   = allocator,
             .io          = io,
@@ -77,7 +83,8 @@ const Events = struct {
             .gpu_device  = gpu_device,
             .file_repo   = file_repo,
             .vert_shader = vert_shader,
-            .frag_shader = frag_shader
+            .frag_shader = frag_shader,
+            .uniforms    = uniforms,
         };
     }
 
