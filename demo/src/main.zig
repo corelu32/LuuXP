@@ -3,12 +3,12 @@ const luexpress = @import("luuxp");
 
 const FileRepo        = luexpress.FileRepo;
 const FileStream      = luexpress.FileStream;
-const Keyboard        = luexpress.Keyboard;
 const Window          = luexpress.Window;
 const GpuDevice       = luexpress.GpuDevice;
 const CommandBuffer   = luexpress.CommandBuffer;
 const Shader          = luexpress.Shader;
 const SubSystem       = application.SubSystem;
+const input           = luexpress.input;
 const application     = luexpress.application;
 const RuntimeSettings = application.RuntimeSettings;
 const RuntimeContext  = application.RuntimeContext;
@@ -67,7 +67,7 @@ const Events = struct {
         };
     }
 
-    pub fn onKeyPress(_: *RuntimeContext(State), key: Keyboard.KeyCode) !void {
+    pub fn onKeyPress(_: *RuntimeContext(State), key: input.Keycode) !void {
         if (key == .Escape) {
             std.debug.print("Escape pressed!", .{ });
         }

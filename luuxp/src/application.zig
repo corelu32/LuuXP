@@ -1,6 +1,6 @@
 const std = @import("std");
 const native = @import("native.zig");
-const Keyboard = @import("Keyboard.zig");
+const input = @import("input.zig");
 const c = native.c;
 
 const log = std.log.scoped(.application);
@@ -70,7 +70,7 @@ pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: s
                 c.SDL_EVENT_QUIT => running = false,
 
                 c.SDL_EVENT_KEY_DOWN => {
-                    try callbacks.onKeyPress(context, Keyboard.KeyCode.fromSdl(event.key.key));
+                    try callbacks.onKeyPress(context, input.Keycode.fromSdl(event.key.key));
                 },
 
                 else => { }

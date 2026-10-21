@@ -1,6 +1,6 @@
 const native = @import("native.zig");
 
-pub const KeyCode = enum(u32) {
+pub const Keycode = enum(u32) {
     Unknown                   = 0x00000000,
     Return                    = 0x0000000d,
     Escape                    = 0x0000001b,
@@ -260,11 +260,11 @@ pub const KeyCode = enum(u32) {
     RightHyper                = 0x20000007,
 
     /// Convert from an SDL keycode.
-    pub fn fromSdl(sdl_code: native.c.SDL_Keycode) KeyCode {
+    pub fn fromSdl(sdl_code: native.c.SDL_Keycode) Keycode {
         const int_code: u32 = @bitCast(sdl_code);
-        var result: KeyCode = .Unknown;
+        var result: Keycode = .Unknown;
 
-        inline for (@typeInfo(KeyCode).@"enum".fields) |field| {
+        inline for (@typeInfo(Keycode).@"enum".fields) |field| {
             if (field.value == int_code) {
                 result = @enumFromInt(field.value);
             }
