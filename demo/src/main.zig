@@ -16,11 +16,11 @@ const RuntimeContext  = application.RuntimeContext;
 const State = struct {
     allocator   : std.mem.Allocator,
     io          : std.Io,
-    file_repo   : FileRepo,
-    window      : Window,
-    gpu_device  : GpuDevice,
-    vert_shader : Shader,
-    frag_shader : Shader,
+    file_repo   : *FileRepo,
+    window      : *Window,
+    gpu_device  : *GpuDevice,
+    vert_shader : *Shader,
+    frag_shader : *Shader,
     tick        : u64 = 0,
 };
 
@@ -32,26 +32,40 @@ const Events = struct {
 
         try application.loadSubSystems(&.{ SubSystem.Video });
 
-        var window = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
+        // Create the window.
+        const window = try allocator.create(Window);
+        errdefer allocator.destroy(window);
+        window.* = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
 
-        var gpu_device = try GpuDevice.init(allocator, false);
+        // Create the GPU device.
+        var gpu_device = try allocator.create(GpuDevice);
+        errdefer allocator.destroy(gpu_device);
+        gpu_device.* = try GpuDevice.init(allocator, false);
+        try gpu_device.claimWindow(window);
 
-        try gpu_device.claimWindow(&window);
+        // Create the file repo.
+        const file_repo = try allocator.create(FileRepo);
+        errdefer allocator.destroy(file_repo);
+        file_repo.* = try FileRepo.init(io, "./demo/.assets", .ParentDirectory);
 
-        var file_repo = try FileRepo.init(io, "./demo/.assets", .ParentDirectory);
-
-        const vert_shader = try Shader.initFromPath(
+        // Create the vertex shader.
+        const vert_shader = try allocator.create(Shader);
+        errdefer allocator.destroy(vert_shader);
+        vert_shader.* = try Shader.initFromPath(
             allocator,
-            &gpu_device,
-            &file_repo,
+            gpu_device,
+            file_repo,
             "Demo.vert.spv",
             "VertexMain",
             .Vertex);
         
-        const frag_shader = try Shader.initFromPath(
+        // Create the fragment shader.
+        const frag_shader = try allocator.create(Shader);
+        errdefer allocator.destroy(frag_shader);
+        frag_shader.* = try Shader.initFromPath(
             allocator,
-            &gpu_device,
-            &file_repo,
+            gpu_device,
+            file_repo,
             "Demo.frag.spv",
             "FragmentMain",
             .Fragment);
@@ -94,9 +108,22 @@ const Events = struct {
     }
 
     pub fn onQuit(ctx: *RuntimeContext(State)) !void {
-        try ctx.state.gpu_device.waitForIdle();
-        ctx.state.gpu_device.deinit();
-        ctx.state.window.deinit();
+        const allocator   = ctx.state.allocator;
+        const window      = ctx.state.window;
+        const gpu_device  = ctx.state.gpu_device;
+        const file_repo   = ctx.state.file_repo;
+        const vert_shader = ctx.state.vert_shader;
+        const frag_shader = ctx.state.frag_shader;
+
+        try gpu_device.waitForIdle();
+        gpu_device.deinit();
+        window.deinit();
+
+        allocator.destroy(vert_shader);
+        allocator.destroy(frag_shader);
+        allocator.destroy(window);
+        allocator.destroy(gpu_device);
+        allocator.destroy(file_repo);
     }
 };
 
