@@ -6,14 +6,56 @@ const log = std.log.scoped(.SpirvContext);
 
 const SpirvError = error {
     InitFailure,
+    ConversionError,
+};
+
+pub const DescriptorType = enum {
+    Sampler,
+    CombinedImageSampler,
+    SampledImage,
+    StorageImage,
+    UniformTexelBuffer,
+    StorageTexelBuffer,
+    UniformBuffer,
+    StorageBuffer,
+    UniformBufferDynamic,
+    StorageBufferDynamic,
+    InputAttachment,
+    AccelerationStructKHR,
+
+    fn fromNative(id: c.SpvReflectDescriptorType) !@This() {
+        return switch (id) {
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER                    => .Sampler,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER     => .CombinedImageSampler,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE              => .SampledImage,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE              => .StorageImage,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER       => .UniformTexelBuffer,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER       => .StorageTexelBuffer,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER             => .UniformBuffer,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER             => .StorageBuffer,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC     => .UniformBufferDynamic,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC     => .StorageBufferDynamic,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT           => .InputAttachment,
+            c.SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR => .AccelerationStructKHR,
+
+            else => {
+                log.err("Invalid SPIR-V reflect descriptor type ID '{}'.", .{ id });
+                return SpirvError.ConversionError;
+            }
+        };
+    }
 };
 
 pub const Descriptor = struct {
     handle: c.SpvReflectDescriptorBinding,
+    name: []const u8,
+    type: DescriptorType,
 
-    fn init(obj: c.SpvReflectDescriptorBinding) @This() {
+    fn init(obj: c.SpvReflectDescriptorBinding) !@This() {
         return .{
             .handle = obj,
+            .name = std.mem.span(obj.name),
+            .type = try DescriptorType.fromNative(obj.descriptor_type),
         };
     }
 };
@@ -96,7 +138,7 @@ pub fn init(allocator: std.mem.Allocator, bytecode: []u8) !@This() {
             return SpirvError.InitFailure;
         };
 
-        module.descriptors[i] = Descriptor.init(native_desc.*);
+        module.descriptors[i] = try Descriptor.init(native_desc.*);
     }
 
     return module;
