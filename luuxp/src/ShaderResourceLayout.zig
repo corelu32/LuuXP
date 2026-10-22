@@ -2,14 +2,6 @@ const std = @import("std");
 const native = @import("native.zig");
 const Shader = @import("Shader.zig");
 
-pub const ResourceType = enum {
-    UniformBuffer,
-    StorageBuffer,
-    TexelStorageBuffer,
-    SampledImage,
-    Sampler,
-};
-
 /// Flags are used to represent type information.
 /// Mimics SPIR-V relflect's layout.
 pub const ResourceMemberTypeInfoFlags = packed struct(u32) {
@@ -91,7 +83,7 @@ pub const ResourceMemberInfo = struct {
 /// High-level information of an entire resource.
 pub const ResourceInfo = struct {
     name: []const u8,
-    resource_type: ResourceType,
+    resource_type: Shader.ResourceType,
     stage: Shader.ShaderStage,
     slot: u32,
     space: u32,

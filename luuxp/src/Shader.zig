@@ -9,6 +9,13 @@ const log = std.log.scoped(.Shader);
 
 pub const ResourceLayout = @import("ShaderResourceLayout.zig");
 
+pub const ResourceType = enum {
+    UniformBuffer,
+    StorageBuffer,
+    Texture,
+    Sampler,
+};
+
 pub const ShaderStage = enum {
     Vertex,
     Fragment,
