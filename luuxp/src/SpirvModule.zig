@@ -48,25 +48,31 @@ pub const DescriptorType = enum {
 };
 
 pub const Descriptor = struct {
-    module_handle: *c.SpvReflectShaderModule,
-    desc_object: c.SpvReflectDescriptorBinding,
 
     name: []const u8,
     type: DescriptorType,
 
-    fn init(module_handle: *c.SpvReflectShaderModule, desc_object: c.SpvReflectDescriptorBinding) !@This() {
+    internal: struct {
+        mod: *c.SpvReflectShaderModule,
+        desc: c.SpvReflectDescriptorBinding,
+    },
+
+    fn init(mod: *c.SpvReflectShaderModule, desc: c.SpvReflectDescriptorBinding) !@This() {
         return .{
-            .module_handle = module_handle,
-            .desc_object = desc_object,
-            .name = std.mem.span(desc_object.name),
-            .type = try DescriptorType.fromNative(desc_object.descriptor_type),
+            .name = std.mem.span(desc.name),
+            .type = try DescriptorType.fromNative(desc.descriptor_type),
+
+            .internal = .{
+                .mod = mod,
+                .desc = desc,
+            },
         };
     }
 
     pub fn updateBindingNumbers(self: *@This(), space_num: u32, binding_num: u32) !void {
         const result = c.spvReflectChangeDescriptorBindingNumbers(
-            self.module_handle,
-            &self.desc_object,
+            self.internal.mod,
+            &self.internal.desc,
             binding_num,
             space_num);
         

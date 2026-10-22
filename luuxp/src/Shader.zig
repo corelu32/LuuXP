@@ -82,7 +82,7 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
     var spv_module = try SpirvModule.init(allocator, bytecode);
     defer spv_module.deinit();
 
-    try parseBytecode(&spv_module, info.stage);
+    try parseBytecode(allocator, &spv_module, info.stage);
 
     _ = info.entry;
     return shader;
@@ -119,7 +119,7 @@ fn loadBytecode(allocator: std.mem.Allocator, stream: *FileStream) ![]u8 {
     return bytecode;
 }
 
-fn parseBytecode(spv_module: *SpirvModule, stage: ShaderStage) !void {
+fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: ShaderStage) !void {
 
     var ctx: ShaderParserInfo = .{
         .spv_module = spv_module
@@ -250,5 +250,7 @@ fn parseBytecode(spv_module: *SpirvModule, stage: ShaderStage) !void {
         });
 
         try descriptor.updateBindingNumbers(space_num, bind_num);
+
+        _ = allocator;
     }
 }
