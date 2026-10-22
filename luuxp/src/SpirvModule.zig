@@ -7,6 +7,7 @@ const log = std.log.scoped(.SpirvContext);
 const SpirvError = error {
     InitFailure,
     ConversionError,
+    MutationFailure,
 };
 
 pub const DescriptorType = enum {
@@ -47,16 +48,32 @@ pub const DescriptorType = enum {
 };
 
 pub const Descriptor = struct {
-    handle: c.SpvReflectDescriptorBinding,
+    module_handle: *c.SpvReflectShaderModule,
+    desc_object: c.SpvReflectDescriptorBinding,
+
     name: []const u8,
     type: DescriptorType,
 
-    fn init(obj: c.SpvReflectDescriptorBinding) !@This() {
+    fn init(module_handle: *c.SpvReflectShaderModule, desc_object: c.SpvReflectDescriptorBinding) !@This() {
         return .{
-            .handle = obj,
-            .name = std.mem.span(obj.name),
-            .type = try DescriptorType.fromNative(obj.descriptor_type),
+            .module_handle = module_handle,
+            .desc_object = desc_object,
+            .name = std.mem.span(desc_object.name),
+            .type = try DescriptorType.fromNative(desc_object.descriptor_type),
         };
+    }
+
+    pub fn updateBindingNumbers(self: *@This(), space_num: u32, binding_num: u32) !void {
+        const result = c.spvReflectChangeDescriptorBindingNumbers(
+            self.module_handle,
+            &self.desc_object,
+            binding_num,
+            space_num);
+        
+        if (result != c.SPV_REFLECT_RESULT_SUCCESS) {
+            log.err("Failed to mutate shader bytecode's binding numbers.", .{});
+            return SpirvError.MutationFailure;
+        }
     }
 };
 
@@ -138,7 +155,7 @@ pub fn init(allocator: std.mem.Allocator, bytecode: []u8) !@This() {
             return SpirvError.InitFailure;
         };
 
-        module.descriptors[i] = try Descriptor.init(native_desc.*);
+        module.descriptors[i] = try Descriptor.init(module.handle, native_desc.*);
     }
 
     return module;

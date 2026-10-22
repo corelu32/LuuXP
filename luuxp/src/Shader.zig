@@ -124,7 +124,7 @@ fn parseBytecode(spv_module: *SpirvModule, stage: ShaderStage) !void {
     var ctx: ShaderParserInfo = .{
         .spv_module = spv_module
     };
-    
+
     const desc_count = spv_module.descriptors.len;
 
     // Pass 01: Accumulate the totals of each resource type.
@@ -248,5 +248,7 @@ fn parseBytecode(spv_module: *SpirvModule, stage: ShaderStage) !void {
             bind_num,
             slot_num
         });
+
+        try descriptor.updateBindingNumbers(space_num, bind_num);
     }
 }
