@@ -251,6 +251,32 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
         try descriptor.updateBindingNumbers(space_num, bind_num);
 
-        _ = allocator;
+        const layout = ResourceLayout.init(allocator, .{
+            .name = descriptor.name,
+            .slot = slot_num,
+            .space = space_num,
+            .binding = bind_num,
+            .stage = stage,
+
+            .size = .{
+                .compact = descriptor.block.size.compact,
+                .actual  = descriptor.block.size.actual,
+            },
+
+            .type = switch (descriptor.type) {
+                .UniformBuffer => .UniformBuffer,
+                .StorageBuffer => .StorageBuffer,
+                .StorageImage  => .StorageTexture,
+                .SampledImage  => .SampledTexture,
+                .Sampler       => .Sampler,
+
+                else => {
+                    log.err("Cannot parse unsupported shader resource '{s}'.", .{ @tagName(descriptor.type) });
+                    return ShaderError.ResourceNotSupported;
+                }
+            },
+        });
+
+        _ = layout;
     }
 }

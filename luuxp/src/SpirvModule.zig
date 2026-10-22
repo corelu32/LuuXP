@@ -52,6 +52,13 @@ pub const Descriptor = struct {
     name: []const u8,
     type: DescriptorType,
 
+    block: struct {
+        size: struct {
+            compact: u32,
+            actual: u32,
+        }
+    },
+
     internal: struct {
         mod: *c.SpvReflectShaderModule,
         desc: c.SpvReflectDescriptorBinding,
@@ -61,6 +68,13 @@ pub const Descriptor = struct {
         return .{
             .name = std.mem.span(desc.name),
             .type = try DescriptorType.fromNative(desc.descriptor_type),
+
+            .block = .{
+                .size = .{
+                    .compact = desc.block.size,
+                    .actual  = desc.block.padded_size,
+                }
+            },
 
             .internal = .{
                 .mod = mod,

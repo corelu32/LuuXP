@@ -41,7 +41,7 @@ pub const ResourceMemberTypeInfoFlags = packed struct(u32) {
     }
 };
 
-/// Holds information about one member of each resource.
+/// Provides reflection information for each individual member.
 pub const ResourceMemberInfo = struct {
     name: []const u8,
     scope: []const u8,
@@ -57,11 +57,14 @@ pub const ResourceMemberInfo = struct {
         relative: u32,
         absolute: u32,
     },
+    /// The member's numeric type information.
     numeric: struct {
+        /// Numeric scalar details.
         scalar: struct {
             width: u32,
             signedness: u32,
         },
+        /// Vector 
         vector: struct { dimensions: u32 },
         matrix: struct {
             rows: u32,
@@ -69,13 +72,13 @@ pub const ResourceMemberInfo = struct {
             stride: u32
         }
     },
+    /// The member's array type information.
     array: struct {
-        dimensions: struct {
-            count: u32,
-            elements: [32]struct{
-                count: u32
-            },
-        },
+        /// Number of dimensions.
+        rank: u32,
+        /// Number of elements per dimension.
+        dimensions: [32]struct { size: u32 },
+        /// Stride of each element.
         stride: u32,
     },
 };
@@ -83,7 +86,7 @@ pub const ResourceMemberInfo = struct {
 /// High-level information of an entire resource.
 pub const ResourceInfo = struct {
     name: []const u8,
-    resource_type: Shader.ResourceType,
+    type: Shader.ResourceType,
     stage: Shader.ShaderStage,
     slot: u32,
     space: u32,
@@ -91,8 +94,7 @@ pub const ResourceInfo = struct {
     size: struct {
         compact: u32,
         actual: u32
-    },
-    count: u32
+    }
 };
 
 allocator: std.mem.Allocator,
