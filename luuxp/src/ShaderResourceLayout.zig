@@ -6,29 +6,29 @@ const Shader = @import("Shader.zig");
 /// Mimics SPIR-V relflect's layout.
 pub const ResourceMemberTypeInfoFlags = packed struct(u32) {
     is_undefined                         : bool,
-    is_void                              : bool,   // 1: 1 << 0 (1)
-    is_bool                              : bool,   // 2: 1 << 1 (2)
-    is_int                               : bool,   // 3: 1 << 2 (4)
-    is_float                             : bool,   // 4: 1 << 3 (8)
+    is_void                              : bool,
+    is_bool                              : bool,
+    is_int                               : bool,
+    is_float                             : bool,
 
     __pad_A__                            : u3,
 
-    is_vector                            : bool,   // 8: 1 << 8 (256)
-    is_matrix                            : bool,   // 9: 1 << 9 (512)
+    is_vector                            : bool,
+    is_matrix                            : bool,
 
     __pad_B__                            : u6,
 
-    is_external_image                    : bool,   // 16: 1 << 16 (65536)
-    is_external_sampler                  : bool,   // 17: 1 << 17 (131072)
-    is_external_sampled_image            : bool,   // 18: 1 << 18 (262144)
-    is_external_block                    : bool,   // 19: 1 << 19 (524288)
-    is_external_acceleration_structure   : bool,   // 20: 1 << 20 (1048576)
+    is_external_image                    : bool,
+    is_external_sampler                  : bool,
+    is_external_sampled_image            : bool,
+    is_external_block                    : bool,
+    is_external_acceleration_structure   : bool,
 
     __pad_C__                            : u7,
 
-    is_struct                            : bool,   // 28: 1 << 28 (268435456)
-    is_array                             : bool,   // 29: 1 << 29 (536870912)
-    is_ref                               : bool,   // 30: 1 << 30 (1073741824)
+    is_struct                            : bool,
+    is_array                             : bool,
+    is_ref                               : bool,
 
     __pad_D__                            : u1,
 
