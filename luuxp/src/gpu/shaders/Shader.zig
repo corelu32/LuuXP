@@ -1,16 +1,15 @@
 const std = @import("std");
-const native = @import("native.zig");
-const FileRepo = @import("FileRepo.zig");
-const FileStream = @import("FileStream.zig");
-const GpuDevice = @import("GpuDevice.zig");
-const UniformBuffer = @import("UniformBuffer.zig");
-const SpirvModule = @import("SpirvModule.zig");
+const root = @import("../../root.zig");
+const native = root.native;
+const FileRepo = root.FileRepo;
+const FileStream = root.FileStream;
+const GpuDevice = root.GpuDevice;
+const UniformBuffer = root.UniformBuffer;
+const SpirvModule = root.SpirvModule;
 
 const log = std.log.scoped(.Shader);
 
-
-
-pub const ResourceLayout = @import("ShaderResourceLayout.zig");
+pub const ResourceLayout = @import("ResourceLayout.zig");
 
 pub const ResourceType = enum {
     UniformBuffer,

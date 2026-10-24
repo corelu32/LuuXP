@@ -1,7 +1,8 @@
 const std = @import("std");
-const native = @import("native.zig");
-const Window = @import("Window.zig");
-const CommandBuffer = @import("CommandBuffer.zig");
+const root = @import("../root.zig");
+const native = root.native;
+const Window = root.Window;
+const CommandBuffer = root.CommandBuffer;
 const c = native.c;
 
 const log = std.log.scoped(.GpuDevice);

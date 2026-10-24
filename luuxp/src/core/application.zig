@@ -1,6 +1,7 @@
 const std = @import("std");
-const native = @import("native.zig");
-const input = @import("input.zig");
+const root = @import("../root.zig");
+const native = root.native;
+const input = root.input;
 const c = native.c;
 
 const log = std.log.scoped(.application);

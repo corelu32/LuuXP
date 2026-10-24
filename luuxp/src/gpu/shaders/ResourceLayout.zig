@@ -1,6 +1,6 @@
 const std = @import("std");
-const native = @import("native.zig");
-const Shader = @import("Shader.zig");
+const root = @import("../../root.zig");
+const Shader = root.Shader;
 
 /// Flags are used to represent type information.
 /// Mimics SPIR-V relflect's layout.

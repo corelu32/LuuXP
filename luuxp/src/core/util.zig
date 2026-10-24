@@ -1,5 +1,6 @@
 const std = @import("std");
-const native = @import("native.zig");
+const root = @import("../root.zig");
+const native = root.native;
 
 pub fn getPhysFSErrorMessage() []const u8 {
     const code = native.c.PHYSFS_getLastErrorCode();

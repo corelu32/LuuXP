@@ -1,7 +1,8 @@
 const std = @import("std");
-const native = @import("native.zig");
-const util = @import("util.zig");
-const FileStream = @import("FileStream.zig");
+const root = @import("../root.zig");
+const native = root.native;
+const util = root.util;
+const FileStream = root.FileStream;
 
 pub const FileRepoType = enum {
     ParentDirectory,

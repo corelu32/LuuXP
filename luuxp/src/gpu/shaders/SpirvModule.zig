@@ -1,5 +1,6 @@
 const std = @import("std");
-const native = @import("native.zig");
+const root = @import("../../root.zig");
+const native = root.native;
 const c = native.c;
 
 const log = std.log.scoped(.SpirvContext);

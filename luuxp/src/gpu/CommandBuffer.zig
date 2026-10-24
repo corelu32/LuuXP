@@ -1,6 +1,7 @@
 const std = @import("std");
-const native = @import("native.zig");
-const GpuDevice = @import("GpuDevice.zig");
+const root = @import("../root.zig");
+const native = root.native;
+const GpuDevice = root.GpuDevice;
 
 pub const CommandBufferError = error {
     InitFailure,

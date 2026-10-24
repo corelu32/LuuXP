@@ -1,7 +1,8 @@
 const std = @import("std");
-const util = @import("util.zig");
-const native = @import("native.zig");
-const FileRepo = @import("FileRepo.zig");
+const root = @import("../root.zig");
+const util = root.util;
+const native = root.native;
+const FileRepo = root.FileRepo;
 
 pub const FileStreamError = error {
     InitFailure,

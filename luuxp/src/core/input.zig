@@ -1,4 +1,5 @@
-const native = @import("native.zig");
+const root = @import("../root.zig");
+const native = root.native;
 
 pub const Keycode = enum(u32) {
     Unknown                   = 0x00000000,
