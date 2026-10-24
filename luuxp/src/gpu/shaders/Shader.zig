@@ -44,12 +44,31 @@ pub const ShaderError = error {
 };
 
 pub const ShaderLayout = struct {
-    resource_layouts: std.StringHashMap(ResourceLayout),
+    allocator: std.mem.Allocator,
+    resources: std.StringHashMap(ResourceLayout),
 
     fn init(allocator: std.mem.Allocator) @This() {
         return .{
-            .resource_layouts = std.StringHashMap(ResourceLayout).init(allocator)
+            .allocator = allocator,
+            .resources = std.StringHashMap(ResourceLayout).init(allocator)
         };
+    }
+
+    fn addResourceLayout(self: *@This(), layout: ResourceLayout) !void {
+        // Key is based on the resource's name.
+        const key = try self.allocator.dupe(u8, layout.info.name);
+        try self.resources.put(key, layout);
+    }
+
+    fn deinit(self: *@This()) void {
+        
+        // Deallocate the hash map and its string keys.
+        var it = self.resources.iterator();
+        while (it.next()) |kvp| {
+            self.allocator.free(kvp.key_ptr);
+        }
+
+        self.resources.deinit();
     }
 };
 
@@ -57,14 +76,16 @@ allocator: std.mem.Allocator,
 gpu_device: *GpuDevice,
 file_stream: *FileStream,
 stage: ShaderStage,
+layout: ShaderLayout,
 
 pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo) !@This() {
     
-    const shader: @This() = .{
+    var shader: @This() = .{
         .allocator = allocator,
         .gpu_device = gpu_device,
         .file_stream = info.stream,
         .stage = info.stage,
+        .layout = undefined,
     };
 
     const bytecode = try loadBytecode(allocator, info.stream);
@@ -73,10 +94,18 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
     var spv_module = try SpirvModule.init(allocator, bytecode);
     defer spv_module.deinit();
 
-    _ = try parseBytecode(allocator, &spv_module, info.stage);
+    // Parse the bytecode, which produces the shader's layout.
+    {
+        const result = try parseBytecode(allocator, &spv_module, info.stage);
+        shader.layout = result.shader_layout;
+    }
 
     _ = info.entry;
     return shader;
+}
+
+pub fn deinit(self: *@This()) void {
+    self.layout.deinit();
 }
 
 pub fn initFromPath(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitFromPathInfo) !@This() {
@@ -272,6 +301,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
             },
         });
 
+        // Recursively populate all member layouts for this resource.
         var populator: ResourceMemberPopulator = .{
             .allocator  = allocator,
             .descriptor = descriptor,
@@ -280,7 +310,8 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
         };
         try populator.run();
 
-        try result.shader_layout.resource_layouts.put(try allocator.dupe(u8, descriptor.name), layout);
+        // The layout is ready - add to the shader layout.
+        try result.shader_layout.addResourceLayout(layout);
     }
 
     return result;
