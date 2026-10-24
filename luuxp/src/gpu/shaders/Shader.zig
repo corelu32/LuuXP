@@ -42,24 +42,15 @@ pub const ShaderError = error {
     ResourceNotSupported,
 };
 
+pub const ShaderLayout = struct {
+    resource_layouts: std.StringHashMap(ResourceLayout),
 
-
-const ResourceParserInfo = struct {
-    count: u32 = 0,
-    binding_counter: u32 = 0,
+    fn init(allocator: std.mem.Allocator) @This() {
+        return .{
+            .resource_layouts = std.StringHashMap(ResourceLayout).init(allocator)
+        };
+    }
 };
-
-const ShaderParserInfo = struct {
-    spv_module: *SpirvModule,
-
-    uniform_buffers: ResourceParserInfo = .{},
-    storage_buffers: ResourceParserInfo = .{},
-    storage_textures: ResourceParserInfo = .{},
-    sampled_textures: ResourceParserInfo = .{},
-    samplers: ResourceParserInfo = .{},
-};
-
-
 
 allocator: std.mem.Allocator,
 gpu_device: *GpuDevice,
@@ -81,7 +72,7 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
     var spv_module = try SpirvModule.init(allocator, bytecode);
     defer spv_module.deinit();
 
-    try parseBytecode(allocator, &spv_module, info.stage);
+    _ = try parseBytecode(allocator, &spv_module, info.stage);
 
     _ = info.entry;
     return shader;
@@ -118,10 +109,14 @@ fn loadBytecode(allocator: std.mem.Allocator, stream: *FileStream) ![]u8 {
     return bytecode;
 }
 
-fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: ShaderStage) !void {
+fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: ShaderStage) !ShaderParserResult {
 
-    var ctx: ShaderParserInfo = .{
+    var ctx: ShaderParserContext = .{
         .spv_module = spv_module
+    };
+
+    const result: ShaderParserResult = .{
+        .shader_layout = ShaderLayout.init(allocator),
     };
 
     const desc_count = spv_module.descriptors.len;
@@ -278,4 +273,25 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
         _ = layout;
     }
+
+    return result;
 }
+
+const ResourceParserContext = struct {
+    count: u32 = 0,
+    binding_counter: u32 = 0,
+};
+
+const ShaderParserContext = struct {
+    spv_module: *SpirvModule,
+
+    uniform_buffers: ResourceParserContext = .{},
+    storage_buffers: ResourceParserContext = .{},
+    storage_textures: ResourceParserContext = .{},
+    sampled_textures: ResourceParserContext = .{},
+    samplers: ResourceParserContext = .{},
+};
+
+const ShaderParserResult = struct {
+    shader_layout: ShaderLayout,
+};
