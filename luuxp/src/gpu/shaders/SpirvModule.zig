@@ -48,11 +48,15 @@ pub const DescriptorType = enum {
     }
 };
 
+pub const BlockVariable = c.SpvReflectBlockVariable;
+
 pub const Descriptor = struct {
 
     name: []const u8,
     type: DescriptorType,
 
+    // TODO: block should be set to internal.desc.block.
+    // Create separate struct for these, possibly named 'layout'.
     block: struct {
         size: struct {
             compact: u32,

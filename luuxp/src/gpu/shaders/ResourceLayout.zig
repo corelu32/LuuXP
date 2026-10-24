@@ -4,7 +4,7 @@ const Shader = root.Shader;
 
 /// Flags are used to represent type information.
 /// Mimics SPIR-V relflect's layout.
-pub const ResourceMemberTypeInfoFlags = packed struct(u32) {
+pub const ResourceMemberDatatypeFlags = packed struct(u32) {
     is_undefined                         : bool,
     is_void                              : bool,
     is_bool                              : bool,
@@ -32,11 +32,11 @@ pub const ResourceMemberTypeInfoFlags = packed struct(u32) {
 
     __pad_D__                            : u1,
 
-    pub fn initFromU32(flags: u32) @This() {
+    pub fn fromU32(flags: u32) @This() {
         return @bitCast(flags);
     }
 
-    pub fn initFromCInt(flags: c_int) @This() {
+    pub fn fromCInt(flags: c_int) @This() {
         return @bitCast(@as(u32, @intCast(flags)));
     }
 };
@@ -46,40 +46,43 @@ pub const ResourceMemberInfo = struct {
     name: []const u8,
     scope: []const u8,
 
-    type_info: struct {
-        flags: ResourceMemberTypeInfoFlags,
-    },
     size: struct {
         compact: u32,
         actual: u32,
     },
+
     stride: struct {
         relative: u32,
         absolute: u32,
     },
-    /// The member's numeric type information.
-    numeric: struct {
-        /// Numeric scalar details.
-        scalar: struct {
-            width: u32,
-            signedness: u32,
+
+    datatype: struct {
+        flags: ResourceMemberDatatypeFlags,
+
+        /// The member's numeric type information.
+        numeric: struct {
+            /// Numeric scalar details.
+            scalar: struct {
+                width: u32,
+                signedness: u32,
+            },
+            /// Vector 
+            vector: struct { dimensions: u32 },
+            matrix: struct {
+                rows: u32,
+                columns: u32,
+                stride: u32
+            }
         },
-        /// Vector 
-        vector: struct { dimensions: u32 },
-        matrix: struct {
-            rows: u32,
-            columns: u32,
-            stride: u32
-        }
-    },
-    /// The member's array type information.
-    array: struct {
-        /// Number of dimensions.
-        rank: u32,
-        /// Number of elements per dimension.
-        dimensions: [32]struct { size: u32 },
-        /// Stride of each element.
-        stride: u32,
+        /// The member's array type information.
+        array: struct {
+            /// Number of dimensions.
+            rank: u32,
+            /// Number of elements per dimension.
+            dimensions: [32]struct { size: u32 },
+            /// Stride of each element.
+            stride: u32,
+        },
     },
 };
 

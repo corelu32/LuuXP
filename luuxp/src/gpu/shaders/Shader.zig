@@ -40,6 +40,7 @@ pub const InitFromPathInfo = struct {
 
 pub const ShaderError = error {
     ResourceNotSupported,
+    ParseFailure
 };
 
 pub const ShaderLayout = struct {
@@ -115,7 +116,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
         .spv_module = spv_module
     };
 
-    const result: ShaderParserResult = .{
+    var result: ShaderParserResult = .{
         .shader_layout = ShaderLayout.init(allocator),
     };
 
@@ -245,7 +246,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
         try descriptor.updateBindingNumbers(space_num, bind_num);
 
-        const layout = ResourceLayout.init(allocator, .{
+        var layout = ResourceLayout.init(allocator, .{
             .name = descriptor.name,
             .slot = slot_num,
             .space = space_num,
@@ -271,11 +272,126 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
             },
         });
 
-        _ = layout;
+        var populator: ResourceMemberPopulator = .{
+            .allocator  = allocator,
+            .descriptor = descriptor,
+            .layout     = &layout,
+            .max_depth  = 32,
+        };
+        try populator.run();
+
+        try result.shader_layout.resource_layouts.put(try allocator.dupe(u8, descriptor.name), layout);
     }
 
     return result;
 }
+
+const ResourceMemberPopulator = struct {
+    allocator: std.mem.Allocator,
+    descriptor: *SpirvModule.Descriptor,
+    layout: *ResourceLayout,
+    max_depth: u32,
+
+    pub fn run(self: *@This()) !void {
+        try recursePopulate(
+            self,
+            &self.descriptor.internal.desc.block,
+            null,
+            0);
+    }
+
+    fn recursePopulate(
+        self: *@This(),
+        block: *SpirvModule.BlockVariable,
+        scope: ?[]const u8,
+        depth: i32) !void {
+
+        // Prevent stack abuse.
+        if (depth > self.max_depth) {
+            log.err("Reached maximum recursion depth!", .{  });
+            return ShaderError.ParseFailure;
+        }
+
+        // Enumerate each child member from the current block.
+        for (0 .. block.member_count) |i| {
+
+            var member = block.members[i];
+            const member_name = std.mem.span(member.name);
+
+            // Use the member's name to initialize an empty scope,
+            // or, concatenate with the current scope.
+            const new_scope = if (scope) |cur_scope| (
+                try std.mem.join(self.allocator, ".", &.{ cur_scope, member_name })
+            ) else (
+                try self.allocator.dupe(u8, member_name)
+            );
+            defer self.allocator.free(new_scope);
+
+            // Capture member information.
+            var info: ResourceLayout.ResourceMemberInfo = .{
+                .name = member_name,
+                .scope = new_scope,
+
+                .size = .{
+                    .actual = member.size,
+                    .compact = member.padded_size,
+                },
+
+                .stride = .{
+                    .relative = member.offset,
+                    .absolute = member.absolute_offset,
+                },
+
+                .datatype = .{
+                    .flags = ResourceLayout.ResourceMemberDatatypeFlags.fromU32(
+                        if (member.type_description) |type_desc|
+                            type_desc.*.type_flags
+                        else
+                            0),
+                    
+                    .numeric = .{
+                        .scalar = .{
+                            .width = member.numeric.scalar.width,
+                            .signedness = member.numeric.scalar.signedness,
+                        },
+                        .vector = .{
+                            .dimensions = member.numeric.vector.component_count,
+                        },
+                        .matrix = .{
+                            .rows = member.numeric.matrix.row_count,
+                            .columns = member.numeric.matrix.column_count,
+                            .stride = member.numeric.matrix.stride,
+                        }
+                    },
+
+                    .array = .{
+                        .rank = member.array.dims_count,
+                        .dimensions = undefined,
+                        .stride = member.array.stride,
+                    }
+                },
+            };
+
+            for (0 .. 32) |dim| {
+                info.datatype.array.dimensions[dim].size = member.array.dims[dim];
+            }
+
+            if (member.member_count > 0) {
+                // Recursively process all members with children.
+                try recursePopulate(
+                    self,
+                    &member,
+                    new_scope,
+                    depth + 1);
+            }
+            else {
+                // This child is a primitive type.
+                // Add to the layout.
+                try self.layout.addMemberInfo(info);
+            }
+        }
+    }
+};
 
 const ResourceParserContext = struct {
     count: u32 = 0,
