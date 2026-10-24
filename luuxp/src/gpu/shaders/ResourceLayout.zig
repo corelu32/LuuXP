@@ -105,20 +105,53 @@ info: ResourceInfo,
 member_map: std.StringHashMap(ResourceMemberInfo),
 
 /// Initialize a resource layout.
-pub fn init(allocator: std.mem.Allocator, info: ResourceInfo) @This() {
+pub fn init(allocator: std.mem.Allocator, info: ResourceInfo) !@This() {
+    
+    // Must duplicate string data to manage ownership.
+    var owned_info = info;
+
+    owned_info.name = try allocator.dupe(u8, info.name);
+    errdefer allocator.free(owned_info.name);
+
     return .{
-        .info = info,
+        .info = owned_info,
         .allocator = allocator,
         .member_map = std.StringHashMap(ResourceMemberInfo).init(allocator),
     };
 }
 
-/// Destroy the resource layout object.
-pub fn deinit(self: *@This()) void {
-    self.member_map.deinit();
-}
-
 /// Add information about one member.
 pub fn addMemberInfo(self: *@This(), info: ResourceMemberInfo) !void {
-    try self.member_map.put(info.scope, info);
+    
+    // Must duplicate string data to manage ownership.
+    var owned_info = info;
+
+    owned_info.name = try self.allocator.dupe(u8, info.name);
+    errdefer self.allocator.free(owned_info.name);
+
+    owned_info.scope = try self.allocator.dupe(u8, info.scope);
+    errdefer self.allocator.free(owned_info.scope);
+    
+    try self.member_map.put(owned_info.scope, owned_info);
+}
+
+/// Destroy the resource layout object.
+pub fn deinit(self: *@This()) void {
+    self.allocator.free(self.info.name);
+
+    // Cleanup member layout objects.
+    {
+        var iterator = self.member_map.iterator();
+        while (iterator.next()) |kvp| {
+
+            // Free each member's 'name' and 'scope' strings.
+            self.allocator.free(kvp.value_ptr.name);
+            self.allocator.free(kvp.value_ptr.scope);
+
+            // Note: The key uses the same memory as `value_ptr.scope`.
+            //       We needn't free it twice!
+        }
+    }
+
+    self.member_map.deinit();
 }

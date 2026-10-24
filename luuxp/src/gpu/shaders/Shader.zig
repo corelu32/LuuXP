@@ -246,7 +246,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
         try descriptor.updateBindingNumbers(space_num, bind_num);
 
-        var layout = ResourceLayout.init(allocator, .{
+        var layout = try ResourceLayout.init(allocator, .{
             .name = descriptor.name,
             .slot = slot_num,
             .space = space_num,
