@@ -8,11 +8,11 @@ const GpuDevice       = luexpress.GpuDevice;
 const CommandBuffer   = luexpress.CommandBuffer;
 const Shader          = luexpress.Shader;
 const UniformBuffer   = luexpress.UniformBuffer;
-const SubSystem       = application.SubSystem;
 const input           = luexpress.input;
-const application     = luexpress.application;
-const RuntimeSettings = application.RuntimeSettings;
-const RuntimeContext  = application.RuntimeContext;
+const app             = luexpress.app;
+const SubSystem       = app.SubSystem;
+const RuntimeSettings = app.RuntimeSettings;
+const RuntimeContext  = app.RuntimeContext;
 
 const State = struct {
     allocator   : std.mem.Allocator,
@@ -32,7 +32,7 @@ const Events = struct {
         settings.target_fps = 60;
         settings.vsync_enabled = false;
 
-        try application.loadSubSystems(&.{ SubSystem.Video });
+        try app.loadSubSystems(&.{ SubSystem.Video });
 
         // Create the window.
         const window = try allocator.create(Window);
@@ -135,5 +135,5 @@ const Events = struct {
 };
 
 pub fn main(init: std.process.Init) !void {
-    try application.run(State, Events, std.heap.smp_allocator, init.io);
+    try app.run(State, Events, std.heap.smp_allocator, init.io);
 }

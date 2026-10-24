@@ -2,7 +2,7 @@ const std = @import("std");
 const c = native.c;
 
 pub const native = @import("native.zig");
-pub const application = @import("core/application.zig");
+pub const app = @import("core/application.zig");
 pub const input = @import("core/input.zig");
 pub const Window = @import("core/Window.zig");
 pub const FileRepo = @import("io/FileRepo.zig");
