@@ -1,6 +1,7 @@
 const std = @import("std");
 const root = @import("../../root.zig");
 const native = root.native;
+const c = native.c;
 const FileRepo = root.FileRepo;
 const FileStream = root.FileStream;
 const GpuDevice = root.GpuDevice;
@@ -39,18 +40,30 @@ pub const InitFromPathInfo = struct {
 };
 
 pub const ShaderError = error {
-    ResourceNotSupported,
-    ParseFailure
+    FeatureNotSupported,
+    ParseFailure,
+    InitFailure,
 };
 
 pub const ShaderLayout = struct {
+
     allocator: std.mem.Allocator,
     resources: std.StringHashMap(ResourceLayout),
+
+    num_uniform_buffers: u32,
+    num_storage_buffers: u32,
+    num_storage_textures: u32,
+    num_samplers: u32,
 
     fn init(allocator: std.mem.Allocator) @This() {
         return .{
             .allocator = allocator,
-            .resources = std.StringHashMap(ResourceLayout).init(allocator)
+            .resources = std.StringHashMap(ResourceLayout).init(allocator),
+
+            .num_uniform_buffers = 0,
+            .num_storage_buffers = 0,
+            .num_storage_textures = 0,
+            .num_samplers = 0,
         };
     }
 
@@ -77,6 +90,7 @@ gpu_device: *GpuDevice,
 file_stream: *FileStream,
 stage: ShaderStage,
 layout: ShaderLayout,
+handle: *c.SDL_GPUShader,
 
 pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo) !@This() {
     
@@ -86,6 +100,7 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
         .file_stream = info.stream,
         .stage = info.stage,
         .layout = undefined,
+        .handle = undefined,
     };
 
     const bytecode = try loadBytecode(allocator, info.stream);
@@ -97,15 +112,50 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
     // Parse the bytecode, which produces the shader's layout.
     {
         const result = try parseBytecode(allocator, &spv_module, info.stage);
-        shader.layout = result.shader_layout;
+        shader.layout = result.layout;
     }
 
-    _ = info.entry;
+    // Create the SDL shader object.
+    {
+        const payload: c.SDL_GPUShaderCreateInfo = .{
+            .code       = bytecode.ptr,
+            .code_size  = bytecode.len,
+            .format     = c.SDL_GPU_SHADERFORMAT_SPIRV,
+            .entrypoint = info.entry.ptr,
+
+            .num_uniform_buffers  = shader.layout.num_uniform_buffers,
+            .num_storage_buffers  = shader.layout.num_storage_buffers,
+            .num_storage_textures = shader.layout.num_storage_textures,
+            .num_samplers         = shader.layout.num_samplers,
+
+            .stage = switch (info.stage) {
+                .Vertex => c.SDL_GPU_SHADERSTAGE_VERTEX,
+                .Fragment => c.SDL_GPU_SHADERSTAGE_FRAGMENT,
+
+                else => {
+                    log.err("Shader stage not supported.", .{});
+                    return ShaderError.FeatureNotSupported;
+                }
+            },
+        };
+
+        const result = c.SDL_CreateGPUShader(gpu_device.handle, &payload);
+
+        if (result) |r| {
+            shader.handle = r;
+        }
+        else {
+            log.err("Failed to create the shader handle. SDL error: {s}", .{ c.SDL_GetError() });
+            return ShaderError.InitFailure;
+        }
+    }
+
     return shader;
 }
 
 pub fn deinit(self: *@This()) void {
     self.layout.deinit();
+    c.SDL_ReleaseGPUShader(self.gpu_device.handle, self.handle);
 }
 
 pub fn initFromPath(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitFromPathInfo) !@This() {
@@ -146,7 +196,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
     };
 
     var result: ShaderParserResult = .{
-        .shader_layout = ShaderLayout.init(allocator),
+        .layout = ShaderLayout.init(allocator),
     };
 
     const desc_count = spv_module.descriptors.len;
@@ -164,7 +214,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
             else => {
                 log.err("Cannot parse unsupported shader resource '{s}'.", .{ @tagName(descriptor.type) });
-                return ShaderError.ResourceNotSupported;
+                return ShaderError.FeatureNotSupported;
             }
         }
     }
@@ -205,7 +255,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
             else => {
                 log.err("Cannot parse unsupported shader resource '{s}'.", .{ @tagName(descriptor.type) });
-                return ShaderError.ResourceNotSupported;
+                return ShaderError.FeatureNotSupported;
             }
         }
 
@@ -261,7 +311,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
             else => {
                 log.err("Cannot parse unsupported shader resource '{s}'.", .{ @tagName(descriptor.type) });
-                return ShaderError.ResourceNotSupported;
+                return ShaderError.FeatureNotSupported;
             }
         }
 
@@ -296,7 +346,7 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
 
                 else => {
                     log.err("Cannot parse unsupported shader resource '{s}'.", .{ @tagName(descriptor.type) });
-                    return ShaderError.ResourceNotSupported;
+                    return ShaderError.FeatureNotSupported;
                 }
             },
         });
@@ -311,8 +361,13 @@ fn parseBytecode(allocator: std.mem.Allocator, spv_module: *SpirvModule, stage: 
         try populator.run();
 
         // The layout is ready - add to the shader layout.
-        try result.shader_layout.addResourceLayout(layout);
+        try result.layout.addResourceLayout(layout);
     }
+
+    result.layout.num_uniform_buffers = ctx.uniform_buffers.count;
+    result.layout.num_storage_buffers = ctx.storage_buffers.count;
+    result.layout.num_storage_textures = ctx.storage_textures.count;
+    result.layout.num_samplers = ctx.samplers.count;
 
     return result;
 }
@@ -440,5 +495,5 @@ const ShaderParserContext = struct {
 };
 
 const ShaderParserResult = struct {
-    shader_layout: ShaderLayout,
+    layout: ShaderLayout,
 };
