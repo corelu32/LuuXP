@@ -108,11 +108,11 @@ pub const ColorTargetBlendFactor = enum {
     }
 };
 
-pub const ColorComponentFlags = packed struct(u8) {
-    Red   : bool = 1 << 0,
-    Green : bool = 1 << 1,
-    Blue  : bool = 1 << 2,
-    Alpha : bool = 1 << 3,
+pub const ColorComponentFlags = packed struct(u4) {
+    Red   : bool = false,
+    Green : bool = false,
+    Blue  : bool = false,
+    Alpha : bool = false,
 };
 
 pub const ColorTargetBlendOperator = enum {
@@ -198,7 +198,7 @@ pub const ColorTarget = struct {
 
     color_write_mask: ?ColorComponentFlags,
 
-    fn toSdlObject(self: *@This()) c.SDL_GPUColorTargetDescription {
+    fn toSdlObject(self: *const @This()) c.SDL_GPUColorTargetDescription {
         return .{
             .format = self.format.toSdlObject(),
             .blend_state = .{
@@ -210,7 +210,7 @@ pub const ColorTarget = struct {
                 .dst_alpha_blendfactor = if (self.blending) |b| b.alpha.dest_factor.toSdlObject()   else undefined,
                 .alpha_blend_op        = if (self.blending) |b| b.alpha.on_blend.toSdlObject()      else undefined,
 
-                .color_write_mask        = if (self.color_write_mask) |v| v else 0,
+                .color_write_mask        = if (self.color_write_mask) |v| @as(u4, @bitCast(v)) else 0,
                 .enable_color_write_mask = self.color_write_mask != null,
             },
         };
@@ -230,7 +230,7 @@ pub const RasterizerSettings = struct {
 
     enable_depth_clip: bool,
 
-    fn toSdlObject(self: *@This()) c.SDL_GPURasterizerState {
+    fn toSdlObject(self: *const @This()) c.SDL_GPURasterizerState {
         return .{
             .fill_mode = switch (self.fill_mode) {
                 .Line => c.SDL_GPU_FILLMODE_LINE,
@@ -262,7 +262,7 @@ pub const MultisampleSettings = struct {
     sample_count: u8,
     enable_alpha_to_coverage: bool,
 
-    fn toSdlObject(self: *@This()) c.SDL_GPUMultisampleState {
+    fn toSdlObject(self: *const @This()) !c.SDL_GPUMultisampleState {
         return .{
             .sample_count = switch (self.sample_count) {
                 1 => c.SDL_GPU_SAMPLECOUNT_1,
@@ -309,7 +309,7 @@ pub const DepthStencilSettings = struct {
         enable_writes: bool,
     },
 
-    fn toSdlObject(self: *@This()) c.SDL_GPUDepthStencilState {
+    fn toSdlObject(self: *const @This()) c.SDL_GPUDepthStencilState {
         return .{
             // Convert depth test state. If disabled, use INVALID.
             .compare_op = if (self.depth_test) |dt| CompareOperator.toSdlObject(dt.on_compare) else c.SDL_GPU_COMPAREOP_INVALID,
@@ -320,14 +320,14 @@ pub const DepthStencilSettings = struct {
                     .compare_op    = CompareOperator.toSdlObject(st.front.on_compare),
                     .fail_op       = StencilOperator.toSdlObject(st.front.on_stencil_fail),
                     .depth_fail_op = StencilOperator.toSdlObject(st.front.on_depth_fail),
-                    .on_pass       = StencilOperator.toSdlObject(st.front.on_pass),
+                    .pass_op       = StencilOperator.toSdlObject(st.front.on_pass),
                 }
             ) else (
                 .{
                     .compare_op    = c.SDL_GPU_COMPAREOP_INVALID,
                     .fail_op       = c.SDL_GPU_STENCILOP_INVALID,
                     .depth_fail_op = c.SDL_GPU_STENCILOP_INVALID,
-                    .on_pass       = c.SDL_GPU_STENCILOP_INVALID,
+                    .pass_op       = c.SDL_GPU_STENCILOP_INVALID,
                 }
             ),
 
@@ -337,14 +337,14 @@ pub const DepthStencilSettings = struct {
                     .compare_op    = CompareOperator.toSdlObject(st.back.on_compare),
                     .fail_op       = StencilOperator.toSdlObject(st.back.on_stencil_fail),
                     .depth_fail_op = StencilOperator.toSdlObject(st.back.on_depth_fail),
-                    .on_pass       = StencilOperator.toSdlObject(st.back.on_pass),
+                    .pass_op       = StencilOperator.toSdlObject(st.back.on_pass),
                 }
             ) else (
                 .{
                     .compare_op    = c.SDL_GPU_COMPAREOP_INVALID,
                     .fail_op       = c.SDL_GPU_STENCILOP_INVALID,
                     .depth_fail_op = c.SDL_GPU_STENCILOP_INVALID,
-                    .on_pass       = c.SDL_GPU_STENCILOP_INVALID,
+                    .pass_op       = c.SDL_GPU_STENCILOP_INVALID,
                 }
             ),
 
@@ -362,7 +362,7 @@ pub const InitSettings = struct {
     rasterizer: RasterizerSettings,
     multisample: MultisampleSettings,
     depth_stencil: ?DepthStencilSettings,
-    color_targets: []ColorTarget,
+    color_targets: []const ColorTarget,
 };
 
 pub const GraphicsPipelineError = error {
@@ -438,35 +438,35 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, settings: Init
     }
 
     // Build SDL's target_info object.
-    const target_info: c.SDL_GPUGraphicsPipelineTargetInfo = undefined; .{
+    const target_info: c.SDL_GPUGraphicsPipelineTargetInfo = .{
         .color_target_descriptions = sdl_color_targets.ptr,
-        .num_color_targets         = sdl_color_targets.len,
-        .depth_stencil_format      = depth_stencil_format,
+        .num_color_targets         = @intCast(sdl_color_targets.len),
+        .depth_stencil_format      = @intCast(depth_stencil_format),
         .has_depth_stencil_target  = has_depth_stencil_target,
     };
 
     // Create the pipeline handle.
     {
-        const result = c.SDL_CreateGPUGraphicsPipeline(
-            gpu_device.handle,
-            &.{
-                .vertex_shader = settings.vertex_shader.handle,
-                .fragment_shader = settings.fragment_shader.handle,
+        const payload: c.SDL_GPUGraphicsPipelineCreateInfo = .{
+            .vertex_shader = settings.vertex_shader.handle,
+            .fragment_shader = settings.fragment_shader.handle,
 
-                .primitive_type = switch (settings.primitive_type) {
-                    .PointList     => c.SDL_GPU_PRIMITIVETYPE_POINTLIST,
-                    .LineList      => c.SDL_GPU_PRIMITIVETYPE_LINELIST,
-                    .LineStrip     => c.SDL_GPU_PRIMITIVETYPE_LINESTRIP,
-                    .TriangleList  => c.SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-                    .TriangleStrip => c.SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP
-                },
+            .primitive_type = switch (settings.primitive_type) {
+                .PointList     => c.SDL_GPU_PRIMITIVETYPE_POINTLIST,
+                .LineList      => c.SDL_GPU_PRIMITIVETYPE_LINELIST,
+                .LineStrip     => c.SDL_GPU_PRIMITIVETYPE_LINESTRIP,
+                .TriangleList  => c.SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+                .TriangleStrip => c.SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP
+            },
 
-                .target_info         = target_info,
-                .rasterizer_state    = settings.rasterizer.toSdlObject(),
-                .multisample_state   = settings.multisample.toSdlObject(),
-                .depth_stencil_state = if (settings.depth_stencil) |ds|
-                                            ds.toSdlObject() else .{},
-            });
+            .target_info         = target_info,
+            .rasterizer_state    = settings.rasterizer.toSdlObject(),
+            .multisample_state   = try settings.multisample.toSdlObject(),
+            .depth_stencil_state = if (settings.depth_stencil) |ds|
+                                        ds.toSdlObject() else .{},
+        };
+
+        const result = c.SDL_CreateGPUGraphicsPipeline(gpu_device.handle, &payload);
         
         if (result) |r| {
             // Handle creation succeeded!

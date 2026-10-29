@@ -1,20 +1,21 @@
 const std = @import("std");
 const luexpress = @import("luuxp");
 
-const FileRepo        = luexpress.FileRepo;
-const FileStream      = luexpress.FileStream;
-const Window          = luexpress.Window;
-const GpuDevice       = luexpress.GpuDevice;
-const CommandBuffer   = luexpress.CommandBuffer;
-const Shader          = luexpress.Shader;
-const UniformBuffer   = luexpress.UniformBuffer;
-const input           = luexpress.input;
-const app             = luexpress.app;
-const SubSystem       = app.SubSystem;
-const RuntimeSettings = app.RuntimeSettings;
-const RuntimeContext  = app.RuntimeContext;
+const FileRepo         = luexpress.FileRepo;
+const FileStream       = luexpress.FileStream;
+const Window           = luexpress.Window;
+const GpuDevice        = luexpress.GpuDevice;
+const CommandBuffer    = luexpress.CommandBuffer;
+const Shader           = luexpress.Shader;
+const UniformBuffer    = luexpress.UniformBuffer;
+const GraphicsPipeline = luexpress.GraphicsPipeline;
+const input            = luexpress.input;
+const app              = luexpress.app;
+const SubSystem        = app.SubSystem;
+const RuntimeSettings  = app.RuntimeSettings;
+const RuntimeContext   = app.RuntimeContext;
 
-const State = struct {
+const State = struct { 
     allocator   : std.mem.Allocator,
     io          : std.Io,
     file_repo   : *FileRepo,
@@ -23,6 +24,7 @@ const State = struct {
     vert_shader : *Shader,
     frag_shader : *Shader,
     uniforms    : *UniformBuffer,
+    pipeline    : *GraphicsPipeline,
     tick        : u64 = 0,
 };
 
@@ -76,6 +78,56 @@ const Events = struct {
         errdefer allocator.destroy(uniforms);
         uniforms.* = try vert_shader.getUniformBuffer("Uniforms");
 
+        const pipeline = try allocator.create(GraphicsPipeline);
+        errdefer allocator.destroy(pipeline);
+
+        // Create the Graphics pipeline.
+        pipeline.* = try GraphicsPipeline.init(allocator, gpu_device, .{
+            .vertex_shader = vert_shader,
+            .fragment_shader = frag_shader,
+            .primitive_type = .TriangleList,
+
+            .rasterizer = .{
+                .cull_mode = .None,
+                .fill_mode = .Fill,
+                .winding_order = .Clockwise,
+                .depth_bias = null,
+                .enable_depth_clip = true
+            },
+
+            .multisample = .{
+                .sample_count = gpu_device.claimed_windows.get(window).?.sample_count.selected.value,
+                .enable_alpha_to_coverage = false,
+            },
+
+            .depth_stencil = .{
+                .depth_test = .{
+                    .on_compare = .Less,
+                    .enable_writes = true
+                },
+                .stencil_test = null,
+            },
+
+            .color_targets = &[_]GraphicsPipeline.ColorTarget {
+                .{
+                    .blending = .{
+                        .color = .{
+                            .source_factor = .SourceAlpha,
+                            .dest_factor   = .OneMinusSourceAlpha,
+                            .on_blend      = .Add
+                        },
+                        .alpha = .{
+                            .source_factor = .SourceAlpha,
+                            .dest_factor   = .OneMinusSourceAlpha,
+                            .on_blend      = .Add
+                        }
+                    },
+                    .color_write_mask = null,
+                    .format = .{ .Float = .Rgba16 }, // FIX: Should match MSAA sample count!!
+                }
+            }
+        });
+
         return .{
             .allocator   = allocator,
             .io          = io,
@@ -85,6 +137,7 @@ const Events = struct {
             .vert_shader = vert_shader,
             .frag_shader = frag_shader,
             .uniforms    = uniforms,
+            .pipeline    = pipeline,
         };
     }
 

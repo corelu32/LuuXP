@@ -11,6 +11,7 @@ pub const GpuDevice = @import("gpu/GpuDevice.zig");
 pub const CommandBuffer = @import("gpu/CommandBuffer.zig");
 pub const UniformBuffer = @import("gpu/UniformBuffer.zig");
 pub const ResourceLayout = @import("gpu/shaders/ResourceLayout.zig");
+pub const GraphicsPipeline = @import("gpu/pipelines/GraphicsPipeline.zig");
 pub const SpirvModule = @import("gpu/shaders/SpirvModule.zig");
 pub const Shader = @import("gpu/shaders/Shader.zig");
 pub const util = @import("core/util.zig");
