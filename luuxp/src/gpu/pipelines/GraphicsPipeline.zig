@@ -10,6 +10,14 @@ pub const FillMode = enum { Line, Fill };
 pub const CullMode = enum { None, Front, Back };
 pub const WindingOrder = enum { Clockwise, CounterClockwise };
 
+pub const DepthStencilFormat = enum {
+    D16Unorm,
+    D24Unorm,
+    D32Float,
+    D24UnormS8UInt,
+    D32FloatS8UInt
+};
+
 pub const PrimitiveType = enum {
     PointList,
     LineList,
@@ -62,6 +70,149 @@ pub const StencilOperator = enum {
             .DecrementAndClamp => c.SDL_GPU_STENCILOP_DECREMENT_AND_CLAMP,
             .IncrementAndWarp  => c.SDL_GPU_STENCILOP_INCREMENT_AND_WRAP,
             .DecrementAndWarp  => c.SDL_GPU_STENCILOP_DECREMENT_AND_WRAP,
+        };
+    }
+};
+
+pub const ColorTargetBlendFactor = enum {
+    Zero,
+    One,
+    SourceColor,
+    OneMinusSourceColor,
+    DestColor,
+    OneMinusDestColor,
+    SourceAlpha,
+    OneMinusSourceAlpha,
+    DestAlpha,
+    OneMinusDestAlpha,
+    ConstantColor,
+    OneMinusConstColor,
+    SourceAlphaSaturate,
+
+    fn toSdlObject(self: @This()) c.SDL_BlendFactor {
+        return switch(self) {
+            .Zero                => c.SDL_GPU_BLENDFACTOR_ZERO,
+            .One                 => c.SDL_GPU_BLENDFACTOR_ONE,
+            .SourceColor         => c.SDL_GPU_BLENDFACTOR_SRC_COLOR,
+            .OneMinusSourceColor => c.SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR,
+            .DestColor           => c.SDL_GPU_BLENDFACTOR_DST_COLOR,
+            .OneMinusDestColor   => c.SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR,
+            .SourceAlpha         => c.SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+            .OneMinusSourceAlpha => c.SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            .DestAlpha           => c.SDL_GPU_BLENDFACTOR_DST_ALPHA,
+            .OneMinusDestAlpha   => c.SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+            .ConstantColor       => c.SDL_GPU_BLENDFACTOR_CONSTANT_COLOR,
+            .OneMinusConstColor  => c.SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR,
+            .SourceAlphaSaturate => c.SDL_GPU_BLENDFACTOR_SRC_ALPHA_SATURATE,
+        };
+    }
+};
+
+pub const ColorComponentFlags = packed struct(u8) {
+    Red   : bool = 1 << 0,
+    Green : bool = 1 << 1,
+    Blue  : bool = 1 << 2,
+    Alpha : bool = 1 << 3,
+};
+
+pub const ColorTargetBlendOperator = enum {
+    Add,
+    Subtract,
+    SubtractReverse,
+    Min,
+    Max,
+
+    fn toSdlObject(self: ColorTargetBlendOperator) c.SDL_BlendOperation {
+        return switch (self) {
+            .Add             => c.SDL_BLENDOPERATION_ADD,
+            .Subtract        => c.SDL_BLENDOPERATION_SUBTRACT,
+            .SubtractReverse => c.SDL_BLENDOPERATION_REV_SUBTRACT,
+            .Min             => c.SDL_BLENDOPERATION_MINIMUM,
+            .Max             => c.SDL_BLENDOPERATION_MAXIMUM,
+        };
+    }
+};
+
+pub const ColorTargetTextureFormat = union(enum) {
+    UNorm     : enum { R8,    Rgba8,  Bgra8,                          },
+    Float     : enum { R16,   Rg16,   Rgba16,  R32,   Rg32,   Rgba32, },
+    Uint      : enum { R8,    Rg8,    Rgba8,   R16,   Rg16,   Rgba16, },
+    Int       : enum { R8,    Rg8,    Rgba8,   R16,   Rg16,   Rgba16  },
+    UNormSrgb : enum { Rgba8, Bgra8                                   },
+
+    fn toSdlObject(self: ColorTargetTextureFormat) c.SDL_GPUTextureFormat {
+        return switch (self) {
+            .UNorm => |sub| switch (sub) {
+                .R8    => c.SDL_GPU_TEXTUREFORMAT_R8_UNORM,
+                .Rgba8 => c.SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+                .Bgra8 => c.SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM,
+            },
+            .Float => |sub| switch (sub) {
+                .R16    => c.SDL_GPU_TEXTUREFORMAT_R16_FLOAT,
+                .Rg16   => c.SDL_GPU_TEXTUREFORMAT_R16G16_FLOAT,
+                .Rgba16 => c.SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT,
+                .R32    => c.SDL_GPU_TEXTUREFORMAT_R32_FLOAT,
+                .Rg32   => c.SDL_GPU_TEXTUREFORMAT_R32G32_FLOAT,
+                .Rgba32 => c.SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT,
+            },
+            .Uint => |sub| switch (sub) {
+                .R8     => c.SDL_GPU_TEXTUREFORMAT_R8_UINT,
+                .Rg8    => c.SDL_GPU_TEXTUREFORMAT_R8G8_UINT,
+                .Rgba8  => c.SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UINT,
+                .R16    => c.SDL_GPU_TEXTUREFORMAT_R16_UINT,
+                .Rg16   => c.SDL_GPU_TEXTUREFORMAT_R16G16_UINT,
+                .Rgba16 => c.SDL_GPU_TEXTUREFORMAT_R16G16B16A16_UINT,
+            },
+            .Int => |sub| switch (sub) {
+                .R8     => c.SDL_GPU_TEXTUREFORMAT_R8_INT,
+                .Rg8    => c.SDL_GPU_TEXTUREFORMAT_R8G8_INT,
+                .Rgba8  => c.SDL_GPU_TEXTUREFORMAT_R8G8B8A8_INT,
+                .R16    => c.SDL_GPU_TEXTUREFORMAT_R16_INT,
+                .Rg16   => c.SDL_GPU_TEXTUREFORMAT_R16G16_INT,
+                .Rgba16 => c.SDL_GPU_TEXTUREFORMAT_R16G16B16A16_INT,
+            },
+            .UNormSrgb => |sub| switch (sub) {
+                .Rgba8 => c.SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB,
+                .Bgra8 => c.SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB,
+            },
+        };
+    }
+};
+
+pub const ColorTarget = struct {
+    format: ColorTargetTextureFormat,
+
+    blending: ?struct {
+        color: struct {
+            source_factor: ColorTargetBlendFactor,
+            dest_factor: ColorTargetBlendFactor,
+            on_blend: ColorTargetBlendOperator,
+        },
+
+        alpha: struct {
+            source_factor: ColorTargetBlendFactor,
+            dest_factor: ColorTargetBlendFactor,
+            on_blend: ColorTargetBlendOperator,
+        },
+    },
+
+    color_write_mask: ?ColorComponentFlags,
+
+    fn toSdlObject(self: *@This()) c.SDL_GPUColorTargetDescription {
+        return .{
+            .format = self.format.toSdlObject(),
+            .blend_state = .{
+                .src_color_blendfactor = if (self.blending) |b| b.color.source_factor.toSdlObject() else undefined,
+                .dst_color_blendfactor = if (self.blending) |b| b.color.dest_factor.toSdlObject()   else undefined,
+                .color_blend_op        = if (self.blending) |b| b.color.on_blend.toSdlObject()      else undefined,
+
+                .src_alpha_blendfactor = if (self.blending) |b| b.alpha.source_factor.toSdlObject() else undefined,
+                .dst_alpha_blendfactor = if (self.blending) |b| b.alpha.dest_factor.toSdlObject()   else undefined,
+                .alpha_blend_op        = if (self.blending) |b| b.alpha.on_blend.toSdlObject()      else undefined,
+
+                .color_write_mask        = if (self.color_write_mask) |v| v else 0,
+                .enable_color_write_mask = self.color_write_mask != null,
+            },
         };
     }
 };
@@ -204,10 +355,6 @@ pub const DepthStencilSettings = struct {
     }
 };
 
-pub const TargetSettings = struct {
-
-};
-
 pub const InitSettings = struct {
     vertex_shader: *Shader,
     fragment_shader: *Shader,
@@ -215,21 +362,87 @@ pub const InitSettings = struct {
     rasterizer: RasterizerSettings,
     multisample: MultisampleSettings,
     depth_stencil: ?DepthStencilSettings,
-    target: TargetSettings,
+    color_targets: []ColorTarget,
 };
 
 pub const GraphicsPipelineError = error {
     InitFailure,
 };
 
+allocator: std.mem.Allocator,
 gpu_device: *GpuDevice,
 handle: *c.SDL_GPUGraphicsPipeline,
 
-pub fn init(gpu_device: *GpuDevice, settings: InitSettings) !@This() {
+pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, settings: InitSettings) !@This() {
 
     var pipeline: @This() = .{
+        .allocator = allocator,
         .gpu_device = gpu_device,
         .handle = undefined,
+    };
+
+    const has_depth_stencil_target = settings.depth_stencil != null;
+
+    // Invalid format by default...
+    var depth_stencil_format = c.SDL_GPU_TEXTUREFORMAT_INVALID;
+
+    // Automatically select the best depth-stencil texture format,
+    // based on GPU specs, and whether the stencil-test is enabled or not.
+    // (ONLY IF THERE IS A DEPTH STENCIL TARGET!)
+    if (has_depth_stencil_target)
+    {
+        // Check if the stencil-test is enabled.
+        const depth_and_stencil = if (settings.depth_stencil) |ds| (
+            ds.stencil_test == null
+        ) else false;
+
+        if (depth_and_stencil) {
+            // Use these texture formats for depth/stencil tests.
+            // Use the highest quality format available.
+
+            const HIGH_QUALITY_FORMAT = c.SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT; // 32-bit high-end format.
+            const DEFAULT_FORMAT      = c.SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT; // 24-bit standard format.
+
+            const use_high_quality = c.SDL_GPUTextureSupportsFormat(
+                gpu_device.handle,
+                HIGH_QUALITY_FORMAT,
+                c.SDL_GPU_TEXTURETYPE_2D,
+                c.SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET);
+
+            depth_stencil_format = if (use_high_quality) HIGH_QUALITY_FORMAT else DEFAULT_FORMAT;
+        }
+        else {
+            // Use these texture formats for depth-only tests.
+            // Use the highest quality format available.
+
+            const HIGH_QUALITY_FORMAT = c.SDL_GPU_TEXTUREFORMAT_D32_FLOAT; // 32-bit high-end format.
+            const DEFAULT_FORMAT      = c.SDL_GPU_TEXTUREFORMAT_D16_UNORM; // 16-bit legacy format.
+
+            const use_high_quality = c.SDL_GPUTextureSupportsFormat(
+                gpu_device.handle,
+                HIGH_QUALITY_FORMAT,
+                c.SDL_GPU_TEXTURETYPE_2D,
+                c.SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET);
+
+            depth_stencil_format = if (use_high_quality) HIGH_QUALITY_FORMAT else DEFAULT_FORMAT;
+        }
+    }
+
+    // Allocate array of native color targets.
+    var sdl_color_targets = try allocator.alloc(c.SDL_GPUColorTargetDescription, settings.color_targets.len);
+    defer allocator.free(sdl_color_targets);
+
+    // Convert each color target to the SDL-native object.
+    for (0 .. sdl_color_targets.len) |i| {
+        sdl_color_targets[i] = settings.color_targets[i].toSdlObject();
+    }
+
+    // Build SDL's target_info object.
+    const target_info: c.SDL_GPUGraphicsPipelineTargetInfo = undefined; .{
+        .color_target_descriptions = sdl_color_targets.ptr,
+        .num_color_targets         = sdl_color_targets.len,
+        .depth_stencil_format      = depth_stencil_format,
+        .has_depth_stencil_target  = has_depth_stencil_target,
     };
 
     // Create the pipeline handle.
@@ -248,15 +461,16 @@ pub fn init(gpu_device: *GpuDevice, settings: InitSettings) !@This() {
                     .TriangleStrip => c.SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP
                 },
 
-                .rasterizer_state = settings.rasterizer.toSdlObject(),
-                .multisample_state = settings.multisample.toSdlObject(),
-                .depth_stencil_state = if (settings.depth_stencil) |ds| ds.toSdlObject() else .{},
-
-                //    TODO: Implement target info.
-                //    .target_info = ...
+                .target_info         = target_info,
+                .rasterizer_state    = settings.rasterizer.toSdlObject(),
+                .multisample_state   = settings.multisample.toSdlObject(),
+                .depth_stencil_state = if (settings.depth_stencil) |ds|
+                                            ds.toSdlObject() else .{},
             });
         
         if (result) |r| {
+            // Handle creation succeeded!
+            // Set the handle.
             pipeline.handle = r;
         }
         else {
