@@ -18,68 +18,50 @@ const RuntimeContext   = app.RuntimeContext;
 const State = struct { 
     allocator   : std.mem.Allocator,
     io          : std.Io,
-    file_repo   : *FileRepo,
-    window      : *Window,
-    gpu_device  : *GpuDevice,
-    vert_shader : *Shader,
-    frag_shader : *Shader,
-    uniforms    : *UniformBuffer,
-    pipeline    : *GraphicsPipeline,
+    file_repo   : FileRepo,
+    window      : Window,
+    gpu_device  : GpuDevice,
+    vert_shader : Shader,
+    frag_shader : Shader,
+    uniforms    : UniformBuffer,
+    pipeline    : GraphicsPipeline,
     tick        : u64 = 0,
 };
 
 const Events = struct {
-    pub fn onInit(allocator: std.mem.Allocator, io: std.Io, settings: *RuntimeSettings) !State {
+    pub fn onInit(ctx: *RuntimeContext(State), allocator: std.mem.Allocator, io: std.Io) !void {
         
-        settings.target_fps = 60;
-        settings.vsync_enabled = false;
+        ctx.settings.target_fps = 60;
+        ctx.settings.vsync_enabled = false;
 
         try app.loadSubSystems(&.{ SubSystem.Video });
 
-        // Create the window.
-        const window = try allocator.create(Window);
-        errdefer allocator.destroy(window);
-        window.* = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
+        ctx.state.window = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
 
-        // Create the GPU device.
-        var gpu_device = try allocator.create(GpuDevice);
-        errdefer allocator.destroy(gpu_device);
-        gpu_device.* = try GpuDevice.init(allocator, false);
-        try gpu_device.claimWindow(window);
+        ctx.state.gpu_device = try GpuDevice.init(allocator, false);
+        try ctx.state.gpu_device.claimWindow(&ctx.state.window);
 
-        // Create the file repo.
-        const file_repo = try allocator.create(FileRepo);
-        errdefer allocator.destroy(file_repo);
-        file_repo.* = try FileRepo.init(io, "./demo/.assets", .ParentDirectory);
+        ctx.state.file_repo = try FileRepo.init(io, "./demo/.assets", .ParentDirectory);
 
         // Create the vertex shader.
-        const vert_shader = try allocator.create(Shader);
-        errdefer allocator.destroy(vert_shader);
-        vert_shader.* = try Shader.initFromPath(allocator, gpu_device,
+        ctx.state.vert_shader = try Shader.initFromPath(allocator, &ctx.state.gpu_device,
         .{
-            .repo = file_repo,
+            .repo = &ctx.state.file_repo,
             .path = "Demo.vert.spv",
             .stage = .Vertex,
             .entry = "VertexMain"
         });
         
         // Create the fragment shader.
-        const frag_shader = try allocator.create(Shader);
-        errdefer allocator.destroy(frag_shader);
-        frag_shader.* = try Shader.initFromPath(allocator, gpu_device,
+        ctx.state.frag_shader = try Shader.initFromPath(allocator, &ctx.state.gpu_device,
         .{
-            .repo = file_repo,
+            .repo = &ctx.state.file_repo,
             .path = "Demo.frag.spv",
             .stage = .Fragment,
             .entry = "FragmentMain"
         });
 
-        const uniforms = try allocator.create(UniformBuffer);
-        errdefer allocator.destroy(uniforms);
-        uniforms.* = try vert_shader.getUniformBuffer("Uniforms");
-
-        const pipeline = try allocator.create(GraphicsPipeline);
-        errdefer allocator.destroy(pipeline);
+        ctx.state.uniforms = try ctx.state.vert_shader.getUniformBuffer("Uniforms");
 
         // Create the Graphics pipeline.
         // pipeline.* = try GraphicsPipeline.init(allocator, gpu_device, .{
@@ -127,18 +109,6 @@ const Events = struct {
         //         }
         //     }
         // });
-
-        return .{
-            .allocator   = allocator,
-            .io          = io,
-            .window      = window,
-            .gpu_device  = gpu_device,
-            .file_repo   = file_repo,
-            .vert_shader = vert_shader,
-            .frag_shader = frag_shader,
-            .uniforms    = uniforms,
-            .pipeline    = pipeline,
-        };
     }
 
     pub fn onKeyPress(ctx: *RuntimeContext(State), key: input.Keycode) !void {
@@ -168,22 +138,12 @@ const Events = struct {
     }
 
     pub fn onQuit(ctx: *RuntimeContext(State)) !void {
-        const allocator   = ctx.state.allocator;
-        const window      = ctx.state.window;
-        const gpu_device  = ctx.state.gpu_device;
-        const file_repo   = ctx.state.file_repo;
-        const vert_shader = ctx.state.vert_shader;
-        const frag_shader = ctx.state.frag_shader;
+        var window      = ctx.state.window;
+        var gpu_device  = ctx.state.gpu_device;
 
         try gpu_device.waitForIdle();
         gpu_device.deinit();
         window.deinit();
-
-        allocator.destroy(vert_shader);
-        allocator.destroy(frag_shader);
-        allocator.destroy(window);
-        allocator.destroy(gpu_device);
-        allocator.destroy(file_repo);
     }
 };
 

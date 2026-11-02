@@ -60,7 +60,7 @@ pub fn run(TState: type, callbacks: anytype, allocator: std.mem.Allocator, io: s
     defer c.SDL_Quit();
 
     // Initialize the application state.
-    context.state = try callbacks.onInit(allocator, io, &context.settings);
+    try callbacks.onInit(context, allocator, io);
     context.internal.is_running = true;
 
     while (context.internal.is_running) {
