@@ -3,6 +3,7 @@ const root = @import("../root.zig");
 const native = root.native;
 const input = root.input;
 const c = native.c;
+const app = @This();
 
 const log = std.log.scoped(.application);
 
@@ -30,6 +31,10 @@ pub fn RuntimeContext(TState: type) type {
         internal: struct {
             is_running: bool = true,
         },
+
+        pub fn loadSubSystems(_: *@This(), subsystems: []const SubSystem) !void {
+            try app.loadSubSystems(subsystems);
+        }
 
         pub fn quit(self: *@This()) void {
             self.internal.is_running = false;

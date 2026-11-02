@@ -34,7 +34,7 @@ const Events = struct {
         ctx.settings.target_fps = 60;
         ctx.settings.vsync_enabled = false;
 
-        try app.loadSubSystems(&.{ SubSystem.Video });
+        try ctx.loadSubSystems(&.{ SubSystem.Video });
 
         ctx.state.window = try Window.init(allocator, "Luexpress Demo (0 FPS)", .{ 800, 600 });
 
