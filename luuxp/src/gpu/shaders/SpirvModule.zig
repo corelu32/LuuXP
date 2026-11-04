@@ -9,6 +9,7 @@ const SpirvError = error {
     InitFailure,
     ConversionError,
     MutationFailure,
+    InvalidModule,
 };
 
 pub const DescriptorType = enum {
@@ -66,10 +67,10 @@ pub const Descriptor = struct {
 
     internal: struct {
         mod: *c.SpvReflectShaderModule,
-        desc: c.SpvReflectDescriptorBinding,
+        desc: *c.SpvReflectDescriptorBinding,
     },
 
-    fn init(mod: *c.SpvReflectShaderModule, desc: c.SpvReflectDescriptorBinding) !@This() {
+    fn init(mod: *c.SpvReflectShaderModule, desc: *c.SpvReflectDescriptorBinding) !@This() {
         return .{
             .name = std.mem.span(desc.name),
             .type = try DescriptorType.fromNative(desc.descriptor_type),
@@ -91,7 +92,7 @@ pub const Descriptor = struct {
     pub fn updateBindingNumbers(self: *@This(), space_num: u32, binding_num: u32) !void {
         const result = c.spvReflectChangeDescriptorBindingNumbers(
             self.internal.mod,
-            &self.internal.desc,
+            self.internal.desc,
             binding_num,
             space_num);
         
@@ -180,10 +181,29 @@ pub fn init(allocator: std.mem.Allocator, bytecode: []u8) !@This() {
             return SpirvError.InitFailure;
         };
 
-        module.descriptors[i] = try Descriptor.init(module.handle, native_desc.*);
+        module.descriptors[i] = try Descriptor.init(module.handle, native_desc);
     }
 
     return module;
+}
+
+/// Return current bytecode state.
+pub fn getBytecode(self: *@This()) ![]const u8 {
+    
+    // The SPIR-V Reflect module returns opcodes as u32 values.
+    const ptr_u32 = c.spvReflectGetCode(self.handle);
+    const word_count = c.spvReflectGetCodeSize(self.handle);
+
+    if (ptr_u32) |p| {
+        // Convert u32 word array into a []u8 byte buffer.
+        const ptr_u8: [*]const u8 = @ptrCast(p);
+        const byte_count = word_count * @sizeOf(u32);
+
+        return ptr_u8[0..byte_count];
+    }
+    else {
+        return SpirvError.InvalidModule;
+    }
 }
 
 pub fn deinit(self: *@This()) void {

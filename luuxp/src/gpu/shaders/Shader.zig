@@ -91,6 +91,7 @@ file_stream: *FileStream,
 stage: ShaderStage,
 layout: ShaderLayout,
 handle: *c.SDL_GPUShader,
+entry_point: []u8,
 
 pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo) !@This() {
     
@@ -99,6 +100,7 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
         .gpu_device = gpu_device,
         .file_stream = info.stream,
         .stage = info.stage,
+        .entry_point = try allocator.dupeZ(u8, info.entry),
         .layout = undefined,
         .handle = undefined,
     };
@@ -115,13 +117,15 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
         shader.layout = result.layout;
     }
 
+    const mutated_bytecode = try spv_module.getBytecode();
+
     // Create the SDL shader object.
     {
         const payload: c.SDL_GPUShaderCreateInfo = .{
-            .code       = bytecode.ptr,
-            .code_size  = bytecode.len,
+            .code       = mutated_bytecode.ptr,
+            .code_size  = mutated_bytecode.len,
             .format     = c.SDL_GPU_SHADERFORMAT_SPIRV,
-            .entrypoint = info.entry.ptr,
+            .entrypoint = shader.entry_point.ptr,
 
             .num_uniform_buffers  = shader.layout.num_uniform_buffers,
             .num_storage_buffers  = shader.layout.num_storage_buffers,
@@ -155,6 +159,7 @@ pub fn init(allocator: std.mem.Allocator, gpu_device: *GpuDevice, info: InitInfo
 
 pub fn deinit(self: *@This()) void {
     self.layout.deinit();
+    self.allocator.free(self.entry_point);
     c.SDL_ReleaseGPUShader(self.gpu_device.handle, self.handle);
 }
 
