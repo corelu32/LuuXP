@@ -3,6 +3,9 @@ const luexpress = @import("luuxp");
 const c = luexpress.native.c;
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    var running = true;
+    var event: c.SDL_Event = undefined;
+
     _ = io;
 
     // Initialize SDL, create a window, and a GPU device.
@@ -79,7 +82,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         // Multisample settings (No MSAA)
         .multisample_state = .{
             .sample_count = c.SDL_GPU_SAMPLECOUNT_1,
-            .sample_mask = 0xFFFFFFFF,
+            .sample_mask = 0,
         },
 
         // Depth settings disabled for a flat triangle
@@ -90,12 +93,21 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         },
     };
 
-    const pipeline = if (c.SDL_CreateGPUGraphicsPipeline(gpu_device, &pipeline_create_info)) |p| p
-        else return error.PipelineCreateError;
-    
-    _ = pipeline;
+    _ = pipeline_create_info;
 
+    // const pipeline = if (c.SDL_CreateGPUGraphicsPipeline(gpu_device, &pipeline_create_info)) |p| p
+    //     else return error.PipelineCreateError;
     
+    // _ = pipeline;
+
+    while (running) {
+        while (c.SDL_PollEvent(&event)) {
+            switch (event.type) {
+                c.SDL_EVENT_QUIT => running = false,
+                else => { }
+            }
+        }
+    }
 
     c.SDL_DestroyGPUDevice(gpu_device);
     c.SDL_DestroyWindow(window);
