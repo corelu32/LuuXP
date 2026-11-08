@@ -47,68 +47,68 @@ pub const Events = struct {
         ctx.state.vert_shader = try Shader.initFromPath(allocator, &ctx.state.gpu_device,
         .{
             .repo = &ctx.state.file_repo,
-            .path = "Demo.vert.spv",
+            .path = "Proto.vert.spv",
             .stage = .Vertex,
-            .entry = "VertexMain"
+            .entry = "main"
         });
         
         // Create the fragment shader.
         ctx.state.frag_shader = try Shader.initFromPath(allocator, &ctx.state.gpu_device,
         .{
             .repo = &ctx.state.file_repo,
-            .path = "Demo.frag.spv",
+            .path = "Proto.frag.spv",
             .stage = .Fragment,
-            .entry = "FragmentMain"
+            .entry = "main"
         });
 
         ctx.state.uniforms = try ctx.state.vert_shader.getUniformBuffer("Uniforms");
 
         // Create the Graphics pipeline.
-        // pipeline.* = try GraphicsPipeline.init(allocator, gpu_device, .{
-        //     .vertex_shader = vert_shader,
-        //     .fragment_shader = frag_shader,
-        //     .primitive_type = .TriangleList,
+        ctx.state.pipeline = try GraphicsPipeline.init(allocator, &ctx.state.gpu_device, .{
+            .vertex_shader = &ctx.state.vert_shader,
+            .fragment_shader = &ctx.state.frag_shader,
+            .primitive_type = .TriangleList,
 
-        //     .rasterizer = .{
-        //         .cull_mode = .None,
-        //         .fill_mode = .Fill,
-        //         .winding_order = .Clockwise,
-        //         .depth_bias = null,
-        //         .enable_depth_clip = true
-        //     },
+            .rasterizer = .{
+                .cull_mode = .None,
+                .fill_mode = .Fill,
+                .winding_order = .Clockwise,
+                .depth_bias = null,
+                .enable_depth_clip = true
+            },
 
-        //     .multisample = .{
-        //         .sample_count = gpu_device.claimed_windows.get(window).?.sample_count.selected.value,
-        //         .enable_alpha_to_coverage = false,
-        //     },
+            .multisample = .{
+                .sample_count = ctx.state.gpu_device.claimed_windows.get(&ctx.state.window).?.sample_count.selected.value,
+                .enable_alpha_to_coverage = false,
+            },
 
-        //     .depth_stencil = .{
-        //         .depth_test = .{
-        //             .on_compare = .Less,
-        //             .enable_writes = true
-        //         },
-        //         .stencil_test = null,
-        //     },
+            .depth_stencil = .{
+                .depth_test = .{
+                    .on_compare = .Less,
+                    .enable_writes = true
+                },
+                .stencil_test = null,
+            },
 
-        //     .color_targets = &[_]GraphicsPipeline.ColorTarget {
-        //         .{
-        //             .blending = .{
-        //                 .color = .{
-        //                     .source_factor = .SourceAlpha,
-        //                     .dest_factor   = .OneMinusSourceAlpha,
-        //                     .on_blend      = .Add
-        //                 },
-        //                 .alpha = .{
-        //                     .source_factor = .SourceAlpha,
-        //                     .dest_factor   = .OneMinusSourceAlpha,
-        //                     .on_blend      = .Add
-        //                 }
-        //             },
-        //             .color_write_mask = null,
-        //             .format = .{ .Float = .Rgba16 }, // FIX: Should match MSAA sample count!!
-        //         }
-        //     }
-        // });
+            .color_targets = &[_]GraphicsPipeline.ColorTarget {
+                .{
+                    .blending = .{
+                        .color = .{
+                            .source_factor = .SourceAlpha,
+                            .dest_factor   = .OneMinusSourceAlpha,
+                            .on_blend      = .Add
+                        },
+                        .alpha = .{
+                            .source_factor = .SourceAlpha,
+                            .dest_factor   = .OneMinusSourceAlpha,
+                            .on_blend      = .Add
+                        }
+                    },
+                    .color_write_mask = null,
+                    .format = .{ .Float = .Rgba16 }, // FIX: Should match MSAA sample count!!
+                }
+            }
+        });
     }
 
     pub fn onKeyPress(ctx: *RuntimeContext(State), key: input.Keycode) !void {
