@@ -93,12 +93,10 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         },
     };
 
-    _ = pipeline_create_info;
-
-    // const pipeline = if (c.SDL_CreateGPUGraphicsPipeline(gpu_device, &pipeline_create_info)) |p| p
-    //     else return error.PipelineCreateError;
+    const pipeline = if (c.SDL_CreateGPUGraphicsPipeline(gpu_device, &pipeline_create_info)) |p| p
+        else return error.PipelineCreateError;
     
-    // _ = pipeline;
+    _ = pipeline;
 
     while (running) {
         while (c.SDL_PollEvent(&event)) {
