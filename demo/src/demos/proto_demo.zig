@@ -41,8 +41,61 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         .num_samplers         = 0,
     });
     
-    _ = vert_shader;
-    _ = frag_shader;
+    const pipeline_create_info: c.SDL_GPUGraphicsPipelineCreateInfo = .{
+        .vertex_shader = vert_shader,
+        .fragment_shader = frag_shader,
+        
+        // Topology settings: we are drawing a triangle list
+        .primitive_type = c.SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+
+        // Vertex input layout: Zero out because the shader handles everything via SV_VertexID
+        .vertex_input_state = .{
+            .num_vertex_buffers = 0,
+            .vertex_buffer_descriptions = null,
+            .num_vertex_attributes = 0,
+            .vertex_attributes = null,
+        },
+
+        // Target render attachment specs (Usually matching your swapchain texture format)
+        .target_info = .{
+            .num_color_targets = 1,
+            .color_target_descriptions = &[_]c.SDL_GPUColorTargetDescription{.{
+                .format = c.SDL_GetGPUSwapchainTextureFormat(gpu_device, window),
+                .blend_state = .{
+                    .enable_blend = false, // Blending off for a solid color triangle
+                },
+            }},
+            .has_depth_stencil_target = false,
+            .depth_stencil_format = c.SDL_GPU_TEXTUREFORMAT_D16_UNORM, // Irrelevant when disabled
+        },
+
+        // Standard rasterizer options for basic 2D drawing
+        .rasterizer_state = .{
+            .fill_mode = c.SDL_GPU_FILLMODE_FILL,
+            .cull_mode = c.SDL_GPU_CULLMODE_NONE, // Draw even if winding order flips
+            .front_face = c.SDL_GPU_FRONTFACE_CLOCKWISE,
+        },
+
+        // Multisample settings (No MSAA)
+        .multisample_state = .{
+            .sample_count = c.SDL_GPU_SAMPLECOUNT_1,
+            .sample_mask = 0xFFFFFFFF,
+        },
+
+        // Depth settings disabled for a flat triangle
+        .depth_stencil_state = .{
+            .enable_depth_test = false,
+            .enable_depth_write = false,
+            .enable_stencil_test = false,
+        },
+    };
+
+    const pipeline = if (c.SDL_CreateGPUGraphicsPipeline(gpu_device, &pipeline_create_info)) |p| p
+        else return error.PipelineCreateError;
+    
+    _ = pipeline;
+
+    
 
     c.SDL_DestroyGPUDevice(gpu_device);
     c.SDL_DestroyWindow(window);
